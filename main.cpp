@@ -1,5 +1,4 @@
 #include "mbed.h"
-#include "Map.hpp"
 //Motor X - Setup
 DigitalOut mx_f1 (D2);
 DigitalOut mx_f2 (D3);
@@ -66,47 +65,47 @@ void micro_passo(DigitalOut fa, DigitalOut fb, int delay){
 
 // MOTOR X - Horario
 void Mx_H(int dlay){
-    micro_passo(mx_f1, mx_f2, dlay);
-    micro_passo(mx_f2, mx_f3, dlay);
-    micro_passo(mx_f3, mx_f4, dlay);
-    micro_passo(mx_f4, mx_f1, dlay);
+    fase(mx_f1, mx_f2, dlay);
+    fase(mx_f2, mx_f3, dlay);
+    fase(mx_f3, mx_f4, dlay);
+    fase(mx_f4, mx_f1, dlay);
 }
 
 // MOTOR X - AntiHorario
 void Mx_Ah(int dlay){
-    micro_passo(mx_f4, mx_f3, dlay);
-    micro_passo(mx_f3, mx_f2, dlay);
-    micro_passo(mx_f2, mx_f1, dlay);
-    micro_passo(mx_f1, mx_f4, dlay);
+    fase(mx_f4, mx_f3, dlay);
+    fase(mx_f3, mx_f2, dlay);
+    fase(mx_f2, mx_f1, dlay);
+    fase(mx_f1, mx_f4, dlay);
 }
 
 // MOTOR Y - Horario
 void My_H(int dlay){
-    micro_passo(my_f1, my_f2, dlay);
-    micro_passo(my_f2, my_f3, dlay);
-    micro_passo(my_f3, my_f4, dlay);
-    micro_passo(my_f4, my_f1, dlay);
+    fase(my_f1, my_f2, dlay);
+    fase(my_f2, my_f3, dlay);
+    fase(my_f3, my_f4, dlay);
+    fase(my_f4, my_f1, dlay);
 }
 
 // MOTOR Y - AntiHorario
 void My_Ah(int dlay){
-    micro_passo(my_f4, my_f3, dlay);
-    micro_passo(my_f3, my_f2, dlay);
-    micro_passo(my_f2, my_f1, dlay);
-    micro_passo(my_f1, my_f4, dlay);
+    fase(my_f4, my_f3, dlay);
+    fase(my_f3, my_f2, dlay);
+    fase(my_f2, my_f1, dlay);
+    fase(my_f1, my_f4, dlay);
 }
 
 int main (){
     while(1){
         x = Ax.read()*1000;
         y = Ay.read()*1000;   
-        
+
         if(x > CXmax){
             int vx = map(x, CXmax, Xmax, 5, 0.5);
             Mx_H(vx); //dando certo
         }
         else if(x < CXmin){
-            int vx_inv = map(x, Xmin, CXmin, 5, 0.5);
+            int vx_inv = map(x, CXmin, Xmin, 0.5, 5);
             Mx_Ah(vx_inv); //dando errado     
         }
         if(y > CYmax){
@@ -114,7 +113,7 @@ int main (){
             My_H(vy);
         }
         else if(y < CYmin){
-            int vy_inv = map(y, Ymin ,CYmin, 5, 0.5);
+            int vy_inv = map(y, CYmin ,Ymin, 0.5, 5);
             My_Ah(vy_inv);        
         }
     }
