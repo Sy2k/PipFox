@@ -16,20 +16,35 @@ DigitalIn endstop_z(PB_15);
 //botoes para controle da movimentação em Z
 AnalogIn botoes_nucleo(A0);
 
-//Joystick
+//passos dos fusos
+passo_linear_x=3;//avanço linear do eixo X
+passo_linear_y=3;//avanço linear do eixo Y
+passo_linear_z=10;//avanço linear do eixo Z
+
+//passos por revolução dos motores 
+steps_por_revol_x=512;
+steps_por_revol_y=512;
+steps_por_revol_z=512;
+
+//Declaração das portas do Joystick (x e y)
 AnalogIn Ax (PC_3);
 AnalogIn Ay (PC_2);
-//leds
+//declaração das portas dos leds
 DigitalOut led_vermelho(PD_2);
 DigitalOut led_verde(PD_2);
 DigitalOut led_amarelo(PD_2);
 DigitalOut led_azul(PC_12);
 
-// Declaracao variavel
+// Declaracao variavel de posicionamento do joystick
 int x, y;
 
+//variáveis que demonstram se o sistema está referenciado ou não em cada um dos eixos. 
 int ref_x_feito=0;
 int ref_y_feito=0;
+int ref_z_feito=0;
+
+//variável responsável por determinar se o sistema está em estado de emergência ou não. Estado igual a 1 significa que o sistema não está em estado de emergência
+int estado=1;
 
 //ESSA PARTE VAI TER QUE REFAZER e ALTERAR OS VALORES
 // X Joystick
@@ -78,15 +93,15 @@ void motor_y_sentido_2(float tempo){
     }
     
 void motor_z_sentido_1(float tempo){
-        for(int i = 0; i <4;i++){
-            motor_z = 1 << i;
+        for(int z = 0; z <4;z++){
+            motor_z = 1 << z;
             wait(tempo);
         }
         }
 
 void motor_z_sentido_2(float tempo){
-        for(int i= 3;i>-1;i--){
-            motor_z = 1 << i;
+        for(int z= 3;z>-1;z--){
+            motor_z = 1 << z;
             wait(tempo);
         }
     }
@@ -101,11 +116,19 @@ void Mz_off(){
     motor_z=(0,0,0,0)
     } 
 
+void emer(){
+    estado=0;
+    ref_x_feito=0;
+    ref_y_feito=0;
+    ref_z_feito=0;
+
+    //entrada no estado de emergencia e perdendo o referenciamento
+    }
 int main(){
     Mz_off();
     Mx_off();
     My_off();
-    //se for usar map retirar as variaveis abaixo
+    //valores de tempo entre cada passo
     int vx=0.01;
     int vx_inv=vx;
     int vy=0.01;
@@ -113,6 +136,8 @@ int main(){
     int vz=0.01;
     int vz_inv=vz;
  while(1){
+        botao_emergencia.rise(&emer);
+        
         x = Ax.read_u16();//ou Ax.read*1000()
         y = Ay.read_u16();//ou Ay.read*1000()   
         
@@ -142,7 +167,6 @@ int main(){
             Mz_off();
         }
      
-
     //endstops
         // if(botao_y.read()==0){
             
@@ -155,6 +179,4 @@ int main(){
         //     motor_z_sentido_1();
         // }      
     }
-    }
-
-    wait(0.01);
+}
