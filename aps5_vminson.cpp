@@ -1,29 +1,29 @@
 #include "mbed.h"
-//Botões
-BusOut motor_x(D2,D3,D4,D5);
+//Motores
+BusOut motor_x(PC_4,PB_13,PB_14,PB_1);
 
-BusOut motor_y(D7,D8,D9,D10);
+BusOut motor_y(PB_2,PB_11,PB_12,PA_11);
 
-BusOut motor_z(D11,D12,D13,D14);
+BusOut motor_z(PA_12,PC_5,PC_6,PC_8);
 //Botao de emergencia
-DigitalIn botao_emergencia(D6);
+DigitalIn botao_emergencia(PC_13);
 //Endstops
-DigitalIn botao_x1(PA_11);
-DigitalIn botao_y1(PB_12);
-DigitalIn botao_z1(PB_11);
+DigitalIn endstop_x(PC_15);
+DigitalIn endstop_y(PA_15);
+DigitalIn endstop_z(PB_15);
 //DEFINIR PORTAS PRA ESSES TB
 
-// DigitalIn botao_x2(**);
-// DigitalIn botao_y2(**);
-// DigitalIn botao_z2(**);
-
 //botoes para controle da movimentação em Z
-//DigitalIn mov_z1(**);
-//DigitalIn mov_z2(**);
+AnalogIn botoes_nucleo(A0);
 
 //Joystick
-AnalogIn Ax (A1);
-AnalogIn Ay (A0);
+AnalogIn Ax (PC_3);
+AnalogIn Ay (PC_2);
+//leds
+DigitalOut led_vermelho(PD_2);
+DigitalOut led_verde(PD_2);
+DigitalOut led_amarelo(PD_2);
+DigitalOut led_azul(PC_12);
 
 // Declaracao variavel
 int x, y;
@@ -156,9 +156,5 @@ int main(){
         // }      
     }
     }
-
-   
-    
-
 
     wait(0.01);
