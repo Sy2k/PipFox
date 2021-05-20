@@ -1,4 +1,3 @@
-#include "mbed.h"
 #include "TextLCD.h"
 
 #include "mbed.h"
@@ -49,8 +48,7 @@ int ref_x_feito=0;
 int ref_y_feito=0;
 int ref_z_feito=0;
 
-//variável responsável por determinar se o sistema está em estado de emergência ou não. Estado igual a 1 significa que o sistema
-// não está em estado de emergência
+//variável responsável por determinar se o sistema está em estado de emergência ou não. Estado igual a 1 significa que o sistema não está em estado de emergência
 int estado_sis=1;
 
 //inicialização dos contadores de passos
@@ -84,65 +82,64 @@ void print_lcd(int step_x, int step_y, int step_z){
        lcd.printf("\rdistancia_x=%2d, distancia_y=%2d\ndistancia_z=%2d ", distancia_x, distancia_y, distancia_z);
 }
 
-void motor_x_sentido_1(float tempo){
+void motor_x_sentido_1(int tempo){
         for(int i = 0; i <4;i++){
             motor_x = 1 << i;
+            wait_ms(tempo);
             if(estado_sis==0){
                 break;
             }
-            wait(tempo);
         }
     }
 
-void motor_x_sentido_2(float tempo){
+void motor_x_sentido_2(int tempo){
         for(int i= 3;i>-1;i--){
             motor_x = 1 << i;
+            wait_ms(tempo);
             if(estado_sis==0){
                 break;
             }
-            wait(tempo);    
-
         }
     }
     
-void motor_y_sentido_1(float tempo){
+void motor_y_sentido_1(int tempo){
         for(int i = 0; i <4;i++){
             motor_y = 1 << i;
+            wait_ms(tempo);
             if(estado_sis==0){
                 break;
-            wait(tempo);    
             }
         }
         }
 
 
-void motor_y_sentido_2(float tempo){
+void motor_y_sentido_2(int tempo){
         for(int i= 3;i>-1;i--){
             motor_y = 1 << i;
+            wait_ms(tempo);
             if(estado_sis==0){
                 break;
             }
-            wait(tempo);    
         }
     }
     
-void motor_z_sentido_1(float tempo){
+void motor_z_sentido_1(int tempo){
         for(int z = 0; z <4;z++){
             motor_z = 1 << z;
+            wait_ms(tempo);
             if(estado_sis==0){
                 break;
             }
-            wait(tempo);
         }
         }
 
-void motor_z_sentido_2(float tempo){
+void motor_z_sentido_2(int tempo){
         for(int z= 3;z>-1;z--){
             motor_z = 1 << z;
+            wait_ms(tempo);
             if(estado_sis==0){
                 break;
             }
-            wait(tempo);    
         }
     }
 
@@ -169,7 +166,7 @@ void Mz_ref(){
     ref_z_feito=1;
     } 
 
-void be(){//botao de emergencia
+void be(){
     estado_sis=0;
     ref_x_feito=0;
     ref_y_feito=0;
@@ -177,31 +174,27 @@ void be(){//botao de emergencia
     step_x = 0;
     step_y = 0;
     step_z = 0;
-
     //entrada no estado de emergencia e perdendo o referenciamento com botao de emergencia
     }
-
+void sair_emer(){
+    estado_sis=1;
+}
 void endstop_crash(){
     estado_sis=0;
     ref_x_feito=0;
     ref_y_feito=0;
     ref_z_feito=0;
 }
-
-void sair_emer(){
-    estado_sis=1;
-}
-
 int main(){
     Mz_off();
     Mx_off();
     My_off();
     //valores de tempo entre cada passo
-    int vx=0.01;
+    int vx=1;
     int vx_inv=vx;
-    int vy=0.01;
+    int vy=1;
     int vy_inv=vy;
-    int vz=0.01;
+    int vz=1;
     int vz_inv=vz;
     botao_emergencia.mode(PullUp);
  while(1){
@@ -211,6 +204,7 @@ int main(){
         if(estado_sis==1){//não está em estado emergencia
             //HOMING
         if(ref_x_feito==0 && ref_y_feito==0 && ref_z_feito==0){
+            while(ref_x_feito==0 && ref_y_feito==0 && ref_z_feito==0){
         motor_x_sentido_1(vx);
         motor_y_sentido_1(vy);
         motor_z_sentido_1(vz);
@@ -218,38 +212,52 @@ int main(){
         endstop_y.fall(&My_ref);
         endstop_x.fall(&Mx_ref);
         }
+        }
         
-        else if(ref_x_feito==0 && ref_y_feito==0){
+        if(ref_x_feito==0 && ref_y_feito==0){
+            while(ref_x_feito==0 && ref_y_feito==0){
             motor_y_sentido_1(vy);
             motor_x_sentido_1(vx);
             endstop_y.fall(&My_ref);
             endstop_x.fall(&Mx_ref);
+            }
         }
 
-        else if(ref_x_feito==0 && ref_z_feito==0){
+        if(ref_x_feito==0 && ref_z_feito==0){
+            while(ref_x_feito==0 && ref_z_feito==0){
             motor_x_sentido_1(vx);
             motor_z_sentido_1(vz);
             endstop_x.fall(&Mx_ref);
             endstop_z.fall(&Mz_ref);
+            }
         }
         else if(ref_y_feito==0 && ref_z_feito==0){
+            while(ref_y_feito==0 && ref_z_feito==0){
             motor_y_sentido_1(vy);
             motor_z_sentido_1(vz);
             endstop_y.fall(&My_ref);
             endstop_z.fall(&Mz_ref);
+            }
         }
-        else if(ref_y_feito==0){
+        if(ref_y_feito==0){
+            while(ref_y_feito==0){
             motor_y_sentido_1(vy);
             endstop_y.fall(&My_ref);
+            }
         }
-        else if(ref_x_feito==0){
+        if(ref_x_feito==0){
+            while(ref_x_feito==0){
             motor_x_sentido_1(vx);
             endstop_x.fall(&Mx_ref);
+            }
         }
-        else if(ref_z_feito==0){
-            motor_z_sentido_1(vz);
-            endstop_z.fall(&Mz_ref);
+        if(ref_z_feito==0){
+            while(ref_z_feito==0){
+                motor_z_sentido_1(vz);
+                endstop_z.fall(&Mz_ref);
+            }
         }
+        
         
         else{
             endstop_x.fall(&endstop_crash);//interrupção devido à colisão de um endstop
@@ -286,12 +294,14 @@ int main(){
                 step_y--;
             }
         
-            else if(botoes_nucleo>0.1000 && botoes_nucleo<0.1020){
+            else if(botoes_nucleo.read()>0.1000 && botoes_nucleo.read()<0.1020){
                 motor_z_sentido_1(vz);
+                step_z++;
             }
 
-            else if(botoes_nucleo>0.25 && botoes_nucleo<0.26){
+            else if(botoes_nucleo.read()>0.25 && botoes_nucleo.read()<0.26){
                 motor_z_sentido_2(vz_inv);
+                step_z--;
             }
 
             // if(botoes_nucleo>0.800 && botoes_nucleo<0.815){
