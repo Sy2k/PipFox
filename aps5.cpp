@@ -210,7 +210,7 @@ int main(){
             //HOMING
         if(ref_x_feito==0 && ref_y_feito==0 && ref_z_feito==0){
             while(ref_x_feito==0 && ref_y_feito==0 && ref_z_feito==0){
-                printf("\rdentro_refxyz\n")
+                printf("\rdentro_refxyz\n");
                 motor_x_sentido_1(vx);
                 motor_y_sentido_1(vy);
                 motor_z_sentido_1(vz);
@@ -222,7 +222,7 @@ int main(){
         
         if(ref_x_feito==0 && ref_y_feito==0){
             while(ref_x_feito==0 && ref_y_feito==0){
-                printf("\rdentro_refxy\n")
+                printf("\rdentro_refxy\n");
                 motor_y_sentido_1(vy);
                 motor_x_sentido_1(vx);
                 endstop_y.fall(&My_ref);
@@ -232,7 +232,7 @@ int main(){
 
         if(ref_x_feito==0 && ref_z_feito==0){
             while(ref_x_feito==0 && ref_z_feito==0){
-                printf("\rdentro_refxz\n")
+                printf("\rdentro_refxz\n");
                 motor_x_sentido_1(vx);
                 motor_z_sentido_1(vz);
                 endstop_x.fall(&Mx_ref);
@@ -241,7 +241,7 @@ int main(){
         }
         else if(ref_y_feito==0 && ref_z_feito==0){
             while(ref_y_feito==0 && ref_z_feito==0){
-                printf("\rdentro_refyz\n")
+                printf("\rdentro_refyz\n");
                 motor_y_sentido_1(vy);
                 motor_z_sentido_1(vz);
                 endstop_y.fall(&My_ref);
@@ -250,21 +250,21 @@ int main(){
         }
         if(ref_y_feito==0){
             while(ref_y_feito==0){
-                printf("\rdentro_refy\n")
+                printf("\rdentro_refy\n");
                 motor_y_sentido_1(vy);
                 endstop_y.fall(&My_ref);
             }
         }
         if(ref_x_feito==0){
             while(ref_x_feito==0){
-                printf("\rdentro_refx\n")
+                printf("\rdentro_refx\n");
                 motor_x_sentido_1(vx);
                 endstop_x.fall(&Mx_ref);
             }
         }
         if(ref_z_feito==0){
             while(ref_z_feito==0){
-                printf("\rdentro_refz\n")
+                printf("\rdentro_refz\n");
                 motor_z_sentido_1(vz);
                 endstop_z.fall(&Mz_ref);
             }
@@ -272,7 +272,7 @@ int main(){
         
         
         else{
-            printf("\rreferenciado\n")
+            printf("\rreferenciado\n");
             endstop_x.fall(&endstop_crash);//interrupção devido à colisão de um endstop
             endstop_y.fall(&endstop_crash);//interrupção devido à colisão de um endstop
             endstop_z.fall(&endstop_crash);//interrupção devido à colisão de um endstop
@@ -286,7 +286,7 @@ int main(){
             {
             // int vx = map(x, CXmax, Xmax, 5, 0.5);
                 motor_x_sentido_1(vx); //dando certo
-                printf("\rdmotor_x_sentido1\n")
+                printf("\rdmotor_x_sentido1\n");
 
                 step_x++;
             }
