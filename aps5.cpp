@@ -286,7 +286,7 @@ int main(){
             {
             // int vx = map(x, CXmax, Xmax, 5, 0.5);
                 motor_x_sentido_1(vx); //dando certo
-                printf("\rdmotor_x_sentido1\n");
+                printf("\rmotor_x_sentido1\n");
 
                 step_x++;
             }
@@ -328,6 +328,7 @@ int main(){
     }
             else{
                 be();
+                printf("\restado de emergencia\n");
                 botao_emergencia.rise(&sair_emer);
             }
 }
