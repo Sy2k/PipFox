@@ -202,8 +202,11 @@ int main(){
     int vz_inv=vz;
     botao_emergencia.mode(PullUp);
     pc.baud(9600);
+    botao_emergencia.fall(&be);
+    endstop_z.fall(&Mz_ref);//isso daqui vai funcionar um por vez?
+    endstop_y.fall(&My_ref);
+    endstop_x.fall(&Mx_ref);
  while(1){
-        botao_emergencia.fall(&be);
         x = Ax.read_u16();//ou Ax.read*1000()
         y = Ay.read_u16();//ou Ay.read*1000()   
         if(estado_sis==1){//não está em estado emergencia
@@ -214,9 +217,6 @@ int main(){
                 motor_x_sentido_1(vx);
                 motor_y_sentido_1(vy);
                 motor_z_sentido_1(vz);
-                endstop_z.fall(&Mz_ref);//isso daqui vai funcionar um por vez?
-                endstop_y.fall(&My_ref);
-                endstop_x.fall(&Mx_ref);
         }
         }
         
@@ -225,8 +225,6 @@ int main(){
                 printf("\rdentro_refxy\n");
                 motor_y_sentido_1(vy);
                 motor_x_sentido_1(vx);
-                endstop_y.fall(&My_ref);
-                endstop_x.fall(&Mx_ref);
             }
         }
 
@@ -235,8 +233,6 @@ int main(){
                 printf("\rdentro_refxz\n");
                 motor_x_sentido_1(vx);
                 motor_z_sentido_1(vz);
-                endstop_x.fall(&Mx_ref);
-                endstop_z.fall(&Mz_ref);
             }
         }
         else if(ref_y_feito==0 && ref_z_feito==0){
@@ -244,29 +240,24 @@ int main(){
                 printf("\rdentro_refyz\n");
                 motor_y_sentido_1(vy);
                 motor_z_sentido_1(vz);
-                endstop_y.fall(&My_ref);
-                endstop_z.fall(&Mz_ref);
             }
         }
         if(ref_y_feito==0){
             while(ref_y_feito==0){
                 printf("\rdentro_refy\n");
                 motor_y_sentido_1(vy);
-                endstop_y.fall(&My_ref);
             }
         }
         if(ref_x_feito==0){
             while(ref_x_feito==0){
                 printf("\rdentro_refx\n");
                 motor_x_sentido_1(vx);
-                endstop_x.fall(&Mx_ref);
             }
         }
         if(ref_z_feito==0){
             while(ref_z_feito==0){
                 printf("\rdentro_refz\n");
                 motor_z_sentido_1(vz);
-                endstop_z.fall(&Mz_ref);
             }
         }
         
