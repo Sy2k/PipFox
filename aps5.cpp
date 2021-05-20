@@ -178,6 +178,7 @@ void be(){
     step_x = 0;
     step_y = 0;
     step_z = 0;
+    printf("\restado de emergencia\n");
     //entrada no estado de emergencia e perdendo o referenciamento com botao de emergencia
     }
 void sair_emer(){
@@ -319,7 +320,6 @@ int main(){
     }
             else{
                 be();
-                printf("\restado de emergencia\n");
                 botao_emergencia.rise(&sair_emer);
             }
 }
