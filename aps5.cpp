@@ -10,6 +10,10 @@ BusOut motor_z(PA_12,PC_5,PC_6,PC_8);
 //LCD
 TextLCD lcd(D8, D9, D4, D5, D6, D7); //rs,e,d0,d1,d2,d3
 
+//inicializar usb
+Serial pc(USBTX,USBRX);
+
+
 //Botao de emergencia
 InterruptIn botao_emergencia(PC_13);
 //Endstops
@@ -197,6 +201,7 @@ int main(){
     int vz=1;
     int vz_inv=vz;
     botao_emergencia.mode(PullUp);
+    pc.baud(9600);
  while(1){
         botao_emergencia.fall(&be);
         x = Ax.read_u16();//ou Ax.read*1000()
@@ -205,54 +210,61 @@ int main(){
             //HOMING
         if(ref_x_feito==0 && ref_y_feito==0 && ref_z_feito==0){
             while(ref_x_feito==0 && ref_y_feito==0 && ref_z_feito==0){
-        motor_x_sentido_1(vx);
-        motor_y_sentido_1(vy);
-        motor_z_sentido_1(vz);
-        endstop_z.fall(&Mz_ref);//isso daqui vai funcionar um por vez?
-        endstop_y.fall(&My_ref);
-        endstop_x.fall(&Mx_ref);
+                printf("\rdentro_refxyz\n")
+                motor_x_sentido_1(vx);
+                motor_y_sentido_1(vy);
+                motor_z_sentido_1(vz);
+                endstop_z.fall(&Mz_ref);//isso daqui vai funcionar um por vez?
+                endstop_y.fall(&My_ref);
+                endstop_x.fall(&Mx_ref);
         }
         }
         
         if(ref_x_feito==0 && ref_y_feito==0){
             while(ref_x_feito==0 && ref_y_feito==0){
-            motor_y_sentido_1(vy);
-            motor_x_sentido_1(vx);
-            endstop_y.fall(&My_ref);
-            endstop_x.fall(&Mx_ref);
+                printf("\rdentro_refxy\n")
+                motor_y_sentido_1(vy);
+                motor_x_sentido_1(vx);
+                endstop_y.fall(&My_ref);
+                endstop_x.fall(&Mx_ref);
             }
         }
 
         if(ref_x_feito==0 && ref_z_feito==0){
             while(ref_x_feito==0 && ref_z_feito==0){
-            motor_x_sentido_1(vx);
-            motor_z_sentido_1(vz);
-            endstop_x.fall(&Mx_ref);
-            endstop_z.fall(&Mz_ref);
+                printf("\rdentro_refxz\n")
+                motor_x_sentido_1(vx);
+                motor_z_sentido_1(vz);
+                endstop_x.fall(&Mx_ref);
+                endstop_z.fall(&Mz_ref);
             }
         }
         else if(ref_y_feito==0 && ref_z_feito==0){
             while(ref_y_feito==0 && ref_z_feito==0){
-            motor_y_sentido_1(vy);
-            motor_z_sentido_1(vz);
-            endstop_y.fall(&My_ref);
-            endstop_z.fall(&Mz_ref);
+                printf("\rdentro_refyz\n")
+                motor_y_sentido_1(vy);
+                motor_z_sentido_1(vz);
+                endstop_y.fall(&My_ref);
+                endstop_z.fall(&Mz_ref);
             }
         }
         if(ref_y_feito==0){
             while(ref_y_feito==0){
-            motor_y_sentido_1(vy);
-            endstop_y.fall(&My_ref);
+                printf("\rdentro_refy\n")
+                motor_y_sentido_1(vy);
+                endstop_y.fall(&My_ref);
             }
         }
         if(ref_x_feito==0){
             while(ref_x_feito==0){
-            motor_x_sentido_1(vx);
-            endstop_x.fall(&Mx_ref);
+                printf("\rdentro_refx\n")
+                motor_x_sentido_1(vx);
+                endstop_x.fall(&Mx_ref);
             }
         }
         if(ref_z_feito==0){
             while(ref_z_feito==0){
+                printf("\rdentro_refz\n")
                 motor_z_sentido_1(vz);
                 endstop_z.fall(&Mz_ref);
             }
@@ -260,6 +272,7 @@ int main(){
         
         
         else{
+            printf("\rreferenciado\n")
             endstop_x.fall(&endstop_crash);//interrupção devido à colisão de um endstop
             endstop_y.fall(&endstop_crash);//interrupção devido à colisão de um endstop
             endstop_z.fall(&endstop_crash);//interrupção devido à colisão de um endstop
@@ -273,33 +286,35 @@ int main(){
             {
             // int vx = map(x, CXmax, Xmax, 5, 0.5);
                 motor_x_sentido_1(vx); //dando certo
+                printf("\rdmotor_x_sentido1\n")
+
                 step_x++;
             }
-            else if(x < CXmin)
+            if(x < CXmin)
             {
                 //int vx_inv = map(x, CXmin, Xmin, 0.5, 5);
                 motor_x_sentido_2(vx_inv); //dando errado
                 step_x--;
             }
-            else if(y > CYmax)
+            if(y > CYmax)
             {
                 //int vy = map(y, CYmax, Ymax, 5, 0.5);
                 motor_y_sentido_1(vy);
                 step_y++;
             }
-            else if(y < CYmin)
+            if(y < CYmin)
             {
             // int vy_inv = map(y, CYmin ,Ymin, 0.5, 5);
                 motor_y_sentido_2(vy_inv);     
                 step_y--;
             }
         
-            else if(botoes_nucleo.read()>0.1000 && botoes_nucleo.read()<0.1020){
+            if(botoes_nucleo.read()>0.1000 && botoes_nucleo.read()<0.1020){
                 motor_z_sentido_1(vz);
                 step_z++;
             }
 
-            else if(botoes_nucleo.read()>0.25 && botoes_nucleo.read()<0.26){
+            if(botoes_nucleo.read()>0.25 && botoes_nucleo.read()<0.26){
                 motor_z_sentido_2(vz_inv);
                 step_z--;
             }
@@ -308,7 +323,7 @@ int main(){
             //    // enter
             // }
             
-            print_lcd(step_x, step_y, step_z);//função de print dos pulsos e deslocamentos
+            //print_lcd(step_x, step_y, step_z);//função de print dos pulsos e deslocamentos
         }
     }
             else{
