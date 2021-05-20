@@ -203,7 +203,7 @@ int main(){
     int vz_inv=vz;
     botao_emergencia.mode(PullUp);
     pc.baud(9600);
-    botao_emergencia.fall(&be);
+    botao_emergencia.rise(&be);
     endstop_z.fall(&Mz_ref);//isso daqui vai funcionar um por vez?
     endstop_y.fall(&My_ref);
     endstop_x.fall(&Mx_ref);
@@ -320,7 +320,7 @@ int main(){
     }
             else{
                 be();
-                botao_emergencia.rise(&sair_emer);
+                botao_emergencia.fall(&sair_emer);
             }
 }
 }
