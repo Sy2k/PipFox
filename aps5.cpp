@@ -172,9 +172,6 @@ void Mz_ref(){
 
 void be(){
     estado_sis=0;
-    ref_x_feito=0;
-    ref_y_feito=0;
-    ref_z_feito=0;
     step_x = 0;
     step_y = 0;
     step_z = 0;
@@ -183,6 +180,9 @@ void be(){
     }
 void sair_emer(){
     estado_sis=1;
+    ref_x_feito=0;
+    ref_y_feito=0;
+    ref_z_feito=0;
 }
 void endstop_crash(){
     estado_sis=0;
@@ -204,6 +204,7 @@ int main(){
     botao_emergencia.mode(PullUp);
     pc.baud(9600);
     botao_emergencia.rise(&be);
+    botao_emergencia.fall(&sair_emer);
     endstop_z.fall(&Mz_ref);//isso daqui vai funcionar um por vez?
     endstop_y.fall(&My_ref);
     endstop_x.fall(&Mx_ref);
@@ -265,6 +266,10 @@ int main(){
         
         else{
             pc.printf("\rreferenciado\n");
+            endstop_x.fall(NULL);
+            endstop_y.fall(NULL);
+            endstop_z.fall(NULL);
+            //wait(0.01);
             endstop_x.fall(&endstop_crash);//interrupção devido à colisão de um endstop
             endstop_y.fall(&endstop_crash);//interrupção devido à colisão de um endstop
             endstop_z.fall(&endstop_crash);//interrupção devido à colisão de um endstop
@@ -285,29 +290,29 @@ int main(){
             if(x < CXmin)
             {
                 //int vx_inv = map(x, CXmin, Xmin, 0.5, 5);
-                pc.motor_x_sentido_2(vx_inv); //dando errado
+                motor_x_sentido_2(vx_inv); //dando errado
                 step_x--;
             }
             if(y > CYmax)
             {
                 //int vy = map(y, CYmax, Ymax, 5, 0.5);
-                pc.motor_y_sentido_1(vy);
+                motor_y_sentido_1(vy);
                 step_y++;
             }
             if(y < CYmin)
             {
             // int vy_inv = map(y, CYmin ,Ymin, 0.5, 5);
-                pc.motor_y_sentido_2(vy_inv);     
+                motor_y_sentido_2(vy_inv);     
                 step_y--;
             }
         
             if(botoes_nucleo.read()>0.1000 && botoes_nucleo.read()<0.1020){
-                pc.motor_z_sentido_1(vz);
+                motor_z_sentido_1(vz);
                 step_z++;
             }
 
             if(botoes_nucleo.read()>0.25 && botoes_nucleo.read()<0.26){
-                pc.motor_z_sentido_2(vz_inv);
+                motor_z_sentido_2(vz_inv);
                 step_z--;
             }
 
@@ -320,7 +325,6 @@ int main(){
     }
             else{
                 be();
-                botao_emergencia.fall(&sair_emer);
             }
 }
 }
