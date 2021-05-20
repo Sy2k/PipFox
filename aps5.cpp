@@ -178,7 +178,7 @@ void be(){
     step_x = 0;
     step_y = 0;
     step_z = 0;
-    printf("\restado de emergencia\n");
+    pc.printf("\restado de emergencia\n");
     //entrada no estado de emergencia e perdendo o referenciamento com botao de emergencia
     }
 void sair_emer(){
@@ -214,7 +214,7 @@ int main(){
             //HOMING
         if(ref_x_feito==0 && ref_y_feito==0 && ref_z_feito==0){
             while(ref_x_feito==0 && ref_y_feito==0 && ref_z_feito==0){
-                printf("\rdentro_refxyz\n");
+                pc.printf("\rdentro_refxyz\n");
                 motor_x_sentido_1(vx);
                 motor_y_sentido_1(vy);
                 motor_z_sentido_1(vz);
@@ -223,7 +223,7 @@ int main(){
         
         if(ref_x_feito==0 && ref_y_feito==0){
             while(ref_x_feito==0 && ref_y_feito==0){
-                printf("\rdentro_refxy\n");
+                pc.printf("\rdentro_refxy\n");
                 motor_y_sentido_1(vy);
                 motor_x_sentido_1(vx);
             }
@@ -231,40 +231,40 @@ int main(){
 
         if(ref_x_feito==0 && ref_z_feito==0){
             while(ref_x_feito==0 && ref_z_feito==0){
-                printf("\rdentro_refxz\n");
+                pc.printf("\rdentro_refxz\n");
                 motor_x_sentido_1(vx);
                 motor_z_sentido_1(vz);
             }
         }
         else if(ref_y_feito==0 && ref_z_feito==0){
             while(ref_y_feito==0 && ref_z_feito==0){
-                printf("\rdentro_refyz\n");
+                pc.printf("\rdentro_refyz\n");
                 motor_y_sentido_1(vy);
                 motor_z_sentido_1(vz);
             }
         }
         if(ref_y_feito==0){
             while(ref_y_feito==0){
-                printf("\rdentro_refy\n");
+                pc.printf("\rdentro_refy\n");
                 motor_y_sentido_1(vy);
             }
         }
         if(ref_x_feito==0){
             while(ref_x_feito==0){
-                printf("\rdentro_refx\n");
+                pc.printf("\rdentro_refx\n");
                 motor_x_sentido_1(vx);
             }
         }
         if(ref_z_feito==0){
             while(ref_z_feito==0){
-                printf("\rdentro_refz\n");
+                pc.printf("\rdentro_refz\n");
                 motor_z_sentido_1(vz);
             }
         }
         
         
         else{
-            printf("\rreferenciado\n");
+            pc.printf("\rreferenciado\n");
             endstop_x.fall(&endstop_crash);//interrupção devido à colisão de um endstop
             endstop_y.fall(&endstop_crash);//interrupção devido à colisão de um endstop
             endstop_z.fall(&endstop_crash);//interrupção devido à colisão de um endstop
@@ -278,36 +278,36 @@ int main(){
             {
             // int vx = map(x, CXmax, Xmax, 5, 0.5);
                 motor_x_sentido_1(vx); //dando certo
-                printf("\rmotor_x_sentido1\n");
+                pc.printf("\rmotor_x_sentido1\n");
 
                 step_x++;
             }
             if(x < CXmin)
             {
                 //int vx_inv = map(x, CXmin, Xmin, 0.5, 5);
-                motor_x_sentido_2(vx_inv); //dando errado
+                pc.motor_x_sentido_2(vx_inv); //dando errado
                 step_x--;
             }
             if(y > CYmax)
             {
                 //int vy = map(y, CYmax, Ymax, 5, 0.5);
-                motor_y_sentido_1(vy);
+                pc.motor_y_sentido_1(vy);
                 step_y++;
             }
             if(y < CYmin)
             {
             // int vy_inv = map(y, CYmin ,Ymin, 0.5, 5);
-                motor_y_sentido_2(vy_inv);     
+                pc.motor_y_sentido_2(vy_inv);     
                 step_y--;
             }
         
             if(botoes_nucleo.read()>0.1000 && botoes_nucleo.read()<0.1020){
-                motor_z_sentido_1(vz);
+                pc.motor_z_sentido_1(vz);
                 step_z++;
             }
 
             if(botoes_nucleo.read()>0.25 && botoes_nucleo.read()<0.26){
-                motor_z_sentido_2(vz_inv);
+                pc.motor_z_sentido_2(vz_inv);
                 step_z--;
             }
 
