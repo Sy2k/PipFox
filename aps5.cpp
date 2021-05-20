@@ -49,7 +49,8 @@ int ref_x_feito=0;
 int ref_y_feito=0;
 int ref_z_feito=0;
 
-//variável responsável por determinar se o sistema está em estado de emergência ou não. Estado igual a 1 significa que o sistema não está em estado de emergência
+//variável responsável por determinar se o sistema está em estado de emergência ou não. Estado igual a 1 significa que o sistema
+// não está em estado de emergência
 int estado_sis=1;
 
 //inicialização dos contadores de passos
@@ -86,29 +87,30 @@ void print_lcd(int step_x, int step_y, int step_z){
 void motor_x_sentido_1(float tempo){
         for(int i = 0; i <4;i++){
             motor_x = 1 << i;
-            wait(tempo);
             if(estado_sis==0){
                 break;
             }
+            wait(tempo);
         }
     }
 
 void motor_x_sentido_2(float tempo){
         for(int i= 3;i>-1;i--){
             motor_x = 1 << i;
-            wait(tempo);
             if(estado_sis==0){
                 break;
             }
+            wait(tempo);    
+
         }
     }
     
 void motor_y_sentido_1(float tempo){
         for(int i = 0; i <4;i++){
             motor_y = 1 << i;
-            wait(tempo);
             if(estado_sis==0){
                 break;
+            wait(tempo);    
             }
         }
         }
@@ -117,30 +119,30 @@ void motor_y_sentido_1(float tempo){
 void motor_y_sentido_2(float tempo){
         for(int i= 3;i>-1;i--){
             motor_y = 1 << i;
-            wait(tempo);
             if(estado_sis==0){
                 break;
             }
+            wait(tempo);    
         }
     }
     
 void motor_z_sentido_1(float tempo){
         for(int z = 0; z <4;z++){
             motor_z = 1 << z;
-            wait(tempo);
             if(estado_sis==0){
                 break;
             }
+            wait(tempo);
         }
         }
 
 void motor_z_sentido_2(float tempo){
         for(int z= 3;z>-1;z--){
             motor_z = 1 << z;
-            wait(tempo);
             if(estado_sis==0){
                 break;
             }
+            wait(tempo);    
         }
     }
 
@@ -167,7 +169,7 @@ void Mz_ref(){
     ref_z_feito=1;
     } 
 
-void be(){
+void be(){//botao de emergencia
     estado_sis=0;
     ref_x_feito=0;
     ref_y_feito=0;
@@ -178,15 +180,18 @@ void be(){
 
     //entrada no estado de emergencia e perdendo o referenciamento com botao de emergencia
     }
-void sair_emer(){
-    estado_sis=1;
-}
+
 void endstop_crash(){
     estado_sis=0;
     ref_x_feito=0;
     ref_y_feito=0;
     ref_z_feito=0;
 }
+
+void sair_emer(){
+    estado_sis=1;
+}
+
 int main(){
     Mz_off();
     Mx_off();
@@ -245,7 +250,6 @@ int main(){
             motor_z_sentido_1(vz);
             endstop_z.fall(&Mz_ref);
         }
-        
         
         else{
             endstop_x.fall(&endstop_crash);//interrupção devido à colisão de um endstop
