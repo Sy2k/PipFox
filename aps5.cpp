@@ -1,14 +1,15 @@
 #include "TextLCD.h"
 
 #include "mbed.h"
-//Motores
+//Definição das portas dos motores
 BusOut motor_x(PC_4,PB_13,PB_14,PB_1);
 
 BusOut motor_y(PB_2,PB_11,PB_12,PA_11);
 
 BusOut motor_z(PA_12,PC_5,PC_6,PC_8);
+
 //LCD
-TextLCD lcd(D8, D9, D4, D5, D6, D7); //rs,e,d0,d1,d2,d3
+TextLCD lcd(D8, D9, D4, D5, D6, D7); //definição das portas rs,e,d0,d1,d2,d3
 
 //inicializar usb para visualizar dados em monitor serial
 Serial pc(USBTX,USBRX);
@@ -22,8 +23,6 @@ InterruptIn botao_emergencia(PC_13);
 InterruptIn endstop_x(PC_15);
 InterruptIn endstop_y(PB_15);
 InterruptIn endstop_z(PA_15); //ou pc14
-
-//DEFINIR PORTAS PRA ESSES TB
 
 //botoes para controle da movimentação em Z
 AnalogIn botoes_nucleo(A0);
@@ -64,6 +63,8 @@ int step_x = 0;
 int step_y = 0;
 int step_z = 0;
 
+int interrupcao_mudara=0;//interrupção mudará no inicio do referenciamento caso o valor seja 1
+
 //ESSA PARTE VAI TER QUE REFAZER e ALTERAR OS VALORES
 // X Joystick
 #define Xmax 65000
@@ -83,15 +84,14 @@ int step_z = 0;
 
 void print_lcd(int step_x, int step_y, int step_z)
 {
-       lcd.cls();
-       float distancia_x = step_x*passo_linear_x/steps_por_revol_x;
-       float distancia_y = step_y*passo_linear_y/steps_por_revol_y;
-       float distancia_z = step_z*passo_linear_z/steps_por_revol_z;
+       lcd.cls();//limpar a tela
+       float distancia_x = step_x*passo_linear_x/steps_por_revol_x;//calculo da distancia percorrida em x
+       float distancia_y = step_y*passo_linear_y/steps_por_revol_y;//calculo da distancia percorrida em y
+       float distancia_z = step_z*passo_linear_z/steps_por_revol_z;//calculo da distancia percorrida em z
        lcd.printf("dx=%.0f dy=%.0f\ndz=%.0f", distancia_x, distancia_y, distancia_z);
        wait(1);
        lcd.cls();
        lcd.printf("Px=%2d Py=%2d\nPz=%2d", step_x, step_y, step_z);
-       
 }
 
 void motor_x_sentido_1(int tempo){
@@ -183,17 +183,17 @@ void be(){
     step_x = 0;
     step_y = 0;
     step_z = 0;
-    debounce_emer.start();
+    debounce_emer.start();//iniciar timer para debounce
     pc.printf("\r estado de emergencia\n");
     //entrada no estado de emergencia e perdendo o referenciamento com botao de emergencia
 }
 void sair_emer(){
     if(debounce_emer.read_ms()>15){
         estado_sis=1;
-        ref_x_feito=0;
+        ref_x_feito=0;//zerar o referenciamento de todos os eixos
         ref_y_feito=0;
         ref_z_feito=0;
-        debounce_emer.reset();
+        debounce_emer.reset();//resetar timer de reset
         pc.printf("\r saindo do estado de emergência\n");
     }
 }
@@ -209,15 +209,15 @@ int main(){
     Mx_off();
     My_off();
 
-    //valores de tempo entre cada passo
+    //valores de tempo entre cada passo determinado como 1 ms
     int vx = 1;
     int vx_inv = vx;
     int vy = 1;
     int vy_inv = vy;
     int vz = 1;
     int vz_inv = vz;
-    botao_emergencia.mode(PullUp);
-    pc.baud(9600);
+    botao_emergencia.mode(PullUp);//definição do botão de emergencia como PullUp
+    pc.baud(9600);//definição do baud rate da comunicação serial usb
     botao_emergencia.fall(&be);
     botao_emergencia.rise(&sair_emer);
     endstop_z.fall(&Mz_ref);
@@ -228,15 +228,17 @@ int main(){
             x = Ax.read_u16();//ou Ax.read*1000()
             y = Ay.read_u16();//ou Ay.read*1000()   
             if(estado_sis==1){//não está em estado emergencia
-                endstop_x.fall(NULL);
-                endstop_y.fall(NULL);
-                endstop_z.fall(NULL);
-                wait(0.01);
-                endstop_x.fall(&Mx_ref);//interrupção devido à colisão de um endstop
-                endstop_y.fall(&My_ref);//interrupção devido à colisão de um endstop
-                endstop_z.fall(&Mz_ref);//interrupção devido à colisão de um endstop
-                //HOMING
-                if(ref_x_feito==0 && ref_y_feito==0 && ref_z_feito==0){
+                if(interrupcao_mudara==1){
+                    endstop_x.fall(NULL);//desatrelar a interrupção
+                    endstop_y.fall(NULL);//desatrelar a interrupção
+                    endstop_z.fall(NULL);//desatrelar a interrupção
+                    wait(0.01);
+                    endstop_x.fall(&Mx_ref);//interrupção devido à colisão de um endstop
+                    endstop_y.fall(&My_ref);//interrupção devido à colisão de um endstop
+                    endstop_z.fall(&Mz_ref);//interrupção devido à colisão de um endstop
+                //HOMING - referenciamento dos eixos
+                }
+                else if(ref_x_feito==0 && ref_y_feito==0 && ref_z_feito==0){
                     while(1){
                         pc.printf("\rdentro_refxyz\n");
                         motor_x_sentido_1(vx);
@@ -245,7 +247,7 @@ int main(){
                     }
                 }
                 
-                if(ref_x_feito == 0 && ref_y_feito == 0 && ref_z_feito ==1){
+                else if(ref_x_feito == 0 && ref_y_feito == 0 && ref_z_feito ==1){
                     while(1){
                         pc.printf("\rdentro_refxy\n");
                         motor_y_sentido_1(vy);
@@ -253,33 +255,33 @@ int main(){
                     }
                 }
 
-                if(ref_x_feito == 0 && ref_z_feito == 0 && ref_y_feito ==1){
+                else if(ref_x_feito == 0 && ref_z_feito == 0 && ref_y_feito ==1){
                     while(1){
                         pc.printf("\rdentro_refxz\n");
                         motor_x_sentido_1(vx);
                         motor_z_sentido_1(vz);
                     }
                 }
-                if(ref_y_feito == 0 && ref_z_feito == 0 && ref_x_feito ==1){
+                else if(ref_y_feito == 0 && ref_z_feito == 0 && ref_x_feito ==1){
                     while(1){
                         pc.printf("\rdentro_refyz\n");
                         motor_y_sentido_1(vy);
                         motor_z_sentido_1(vz);
                     }
                 }
-                if(ref_y_feito == 0 && ref_z_feito ==1 && ref_x_feito ==1){
+                else if(ref_y_feito == 0 && ref_z_feito ==1 && ref_x_feito ==1){
                     while(1){
                         pc.printf("\rdentro_refy\n");
                         motor_y_sentido_1(vy);
                     }
                 }
-                if(ref_x_feito == 0 && ref_z_feito ==1 && ref_y_feito ==1){
+                else if(ref_x_feito == 0 && ref_z_feito ==1 && ref_y_feito ==1){
                     while(1){
                         pc.printf("\rdentro_refx\n");
                         motor_x_sentido_1(vx);
                     }
                 }
-                if(ref_z_feito == 0 && ref_y_feito ==1 && ref_x_feito ==1){
+                else if(ref_z_feito == 0 && ref_y_feito ==1 && ref_x_feito ==1){
                     while(1){
                         pc.printf("\rdentro_refz\n");
                         motor_z_sentido_1(vz);
@@ -289,19 +291,15 @@ int main(){
                 
                 else{
                     pc.printf("\rreferenciado\n");
-                    // endstop_x.fall(NULL);
-                    // endstop_y.fall(NULL);
-                    // endstop_z.fall(NULL);
-                    // //wait(0.01);
-                    // endstop_x.fall(&endstop_crash);//interrupção devido à colisão de um endstop
-                    // endstop_y.fall(&endstop_crash);//interrupção devido à colisão de um endstop
-                    // endstop_z.fall(&endstop_crash);//interrupção devido à colisão de um endstop
-                
-                    // int step_x = 0;
-                    // int step_y = 0;
-                    // int step_z = 0;
+                    endstop_x.fall(NULL);//desatrelar a interrupção
+                    endstop_y.fall(NULL);//desatrelar a interrupção
+                    endstop_z.fall(NULL);//desatrelar a interrupção
+                    //wait(0.01);
+                    endstop_x.fall(&endstop_crash);//interrupção devido à colisão de um endstop
+                    endstop_y.fall(&endstop_crash);//interrupção devido à colisão de um endstop
+                    endstop_z.fall(&endstop_crash);//interrupção devido à colisão de um endstop
                     
-                    //Condições para a movimentação
+                    //Condições para a movimentação dependendo da posição do joystick
                     if(x > CXmax)
                     {
                     // int vx = map(x, CXmax, Xmax, 5, 0.5);
@@ -340,14 +338,15 @@ int main(){
                     }
 
                     // if(botoes_nucleo>0.800 && botoes_nucleo<0.815){
-                    //    // enter
+                    // enter
                     // }
                     
-                    //print_lcd(step_x, step_y, step_z);//função de print dos pulsos e deslocamentos
+                    print_lcd(step_x, step_y, step_z);//função de print dos pulsos e deslocamentos
                 }
         }
         else{
             be();
+            interrupcao_mudara=1;
         }
     }
 }
