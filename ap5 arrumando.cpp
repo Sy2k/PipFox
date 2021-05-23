@@ -16,6 +16,8 @@ Serial pc(USBTX,USBRX);
 //debounce para o botao de emergencia
 Timer debounce_emer;
 
+Timer debounce_endstop;
+
 //Botao de emergencia
 InterruptIn botao_emergencia(PC_13);
 
@@ -72,7 +74,7 @@ int step_z = 0;
 
 // Centro Joystick X
 #define CXmin 31000
-#define CXmax 32500
+#define CXmax 33500
 
 // Centro Joystick Y
 #define CYmin 31000
@@ -85,14 +87,14 @@ int step_z = 0;
 void print_lcd(int step_x, int step_y, int step_z)
 {
        lcd.cls();//limpar a tela
-       float distancia_x = step_x*passo_linear_x/steps_por_revol_x;//calculo da distancia percorrida em x
-       float distancia_y = step_y*passo_linear_y/steps_por_revol_y;//calculo da distancia percorrida em y
-       float distancia_z = step_z*passo_linear_z/steps_por_revol_z;//calculo da distancia percorrida em z
-       lcd.printf("dx=%.0f dy=%.0f\ndz=%.0f", distancia_x, distancia_y, distancia_z);
-       wait(1);//COLOCAR NA MESMA POSICAO
-       lcd.cls();
+    //    float distancia_x = step_x*passo_linear_x/steps_por_revol_x;//calculo da distancia percorrida em x
+    //    float distancia_y = step_y*passo_linear_y/steps_por_revol_y;//calculo da distancia percorrida em y
+    //    float distancia_z = step_z*passo_linear_z/steps_por_revol_z;//calculo da distancia percorrida em z
+    //    lcd.printf("dx=%.0f dy=%.0f\ndz=%.0f", distancia_x, distancia_y, distancia_z);
+    //    wait(1);//COLOCAR NA MESMA POSICAO
+    //    lcd.cls();
        lcd.printf("Px=%2d Py=%2d\nPz=%2d", step_x, step_y, step_z);
-       wait(1);
+    //    wait(1);
 }
 
 void motor_x_sentido_1(int tempo){
@@ -152,67 +154,70 @@ void ref(){
     if (movendo_em_x==1)
     {
         pc.printf("\r referenciou em x\n");
+        // lcd.printf("\r referenciou em x\n");
         movendo_em_x = 0;
         ref_x_feito=1;
         Mx_off();
+        debounce_endstop.start();
     }
-    else if(movendo_em_y==1)
+
+    else if(movendo_em_y==1 && debounce_endstop.read_ms()>500)
     {
         pc.printf("\r referenciou em y\n");
-
+        // lcd.printf("\r referenciou em y\n");
         movendo_em_y = 0;
         ref_y_feito=1;
         My_off();
+        debounce_endstop.reset();
+        debounce_endstop.start();
     }
-    else if(movendo_em_z==1)
-    {        
+
+    else if(movendo_em_z==1 && debounce_endstop.read_ms()>500)
+    {
         pc.printf("\r referenciou em z\n");
+        // lcd.printf("\r referenciou em z\n");
         movendo_em_z = 0;
         ref_z_feito=1;
         Mz_off();
+        debounce_endstop.reset();
+        step_x=0;
+        step_y=0;
+        step_z=0;
     }
-    
 }
 
-// void Mx_ref(){
-//     motor_x=0,0,0,0;//desliga o motor 
-//     ref_x_feito=1;//define que o referenciamento foi concluido
-// }
-// void My_ref(){
-//     motor_y=0,0,0,0;
-//     ref_y_feito=1;
-// } 
-// void Mz_ref(){
-//     motor_z=0,0,0,0;
-//     ref_z_feito=1;
-// } 
 
 void be(){
     estado_sis = 0;//entrou em estado de emergencia
     step_x = 0;//pensar se precisa checar antes de zerar o valor 
     step_y = 0;
     step_z = 0;
-    //debounce_emer.start();//iniciar timer para debounce
+    ref_x_feito=0;//zerar o referenciamento de todos os eixos
+    ref_y_feito=0;
+    ref_z_feito=0;
+    debounce_emer.start();//iniciar timer para debounce
     pc.printf("\r estado de emergencia\n");
+    // lcd.printf("\r estado de emergencia\n");
     //entrada no estado de emergencia e perdendo o referenciamento com botao de emergencia
 }
 void sair_emer(){
-    //if(debounce_emer.read_ms()>15){//CHECAR
+    if(debounce_emer.read_ms()>15){//CHECAR
         estado_sis=1;
         ref_x_feito=0;//zerar o referenciamento de todos os eixos
         ref_y_feito=0;
         ref_z_feito=0;
-        // debounce_emer.reset();//resetar timer de reset
+        debounce_emer.reset();//resetar timer de reset
         pc.printf("\r saindo do estado de emergência\n");
-    //}
+        // lcd.printf("\r saindo do estado de emergência\n");
+    }
 }
-void endstop_crash(){
-    estado_sis=0;
-    ref_x_feito=0;
-    ref_y_feito=0;
-    ref_z_feito=0;
-    pc.printf("\r estado de emergencia devido a batida \n");
-}
+// void endstop_crash(){
+//     estado_sis=0;
+//     ref_x_feito=0;
+//     ref_y_feito=0;
+//     ref_z_feito=0;
+//     pc.printf("\r estado de emergencia devido a batida \n");
+// }
 int main(){
     Mz_off();
     Mx_off();
@@ -242,6 +247,7 @@ int main(){
                     movendo_em_x=1;
                     while(ref_x_feito==0){
                         pc.printf("\rdentro_refx\n");
+                        // lcd.printf("\rdentro_refx\n");
                         motor_x_sentido_1(vx);
                         if(estado_sis==0){
                             break;
@@ -252,6 +258,7 @@ int main(){
                     movendo_em_y=1;
                     while(ref_y_feito == 0){
                         pc.printf("\rdentro_refy\n");
+                        // lcd.printf("\rdentro_refy\n");
                         motor_y_sentido_1(vy);
                         if(estado_sis==0){
                             break;
@@ -263,6 +270,7 @@ int main(){
                     movendo_em_z=1;
                     while(ref_z_feito == 0){
                         pc.printf("\rdentro_refz\n");
+                        // lcd.printf("\rdentro_refz\n");
                         motor_z_sentido_1(vz);
                         if(estado_sis==0){
                             break;
@@ -279,42 +287,42 @@ int main(){
                     // int vx = map(x, CXmax, Xmax, 5, 0.5);
                         motor_x_sentido_1(vx); //dando certo
                         pc.printf("\rmotor_x_sentido1\n");
-                        step_x++;
+                        step_x+=4;
                     }
                     if(x < CXmin && estado_sis == 1)
                     {
                         //int vx_inv = map(x, CXmin, Xmin, 0.5, 5);
                         motor_x_sentido_2(vx_inv); //dando errado
-                        step_x--; 
+                        step_x-=4; 
                     }
                     if(y > CYmax && estado_sis == 1)
                     {
                         //int vy = map(y, CYmax, Ymax, 5, 0.5);
                         motor_y_sentido_1(vy);
-                        step_y++;
+                        step_y+=4;
                     }
                     if(y < CYmin && estado_sis == 1)
                     {
                     // int vy_inv = map(y, CYmin ,Ymin, 0.5, 5);
                         motor_y_sentido_2(vy_inv);     
-                        step_y--;
+                        step_y-=4;
                     }
                 
-                    if(botoes_nucleo.read()>0.1000 && botoes_nucleo.read()<0.1020){
+                    if(botoes_nucleo.read()>0.095 && botoes_nucleo.read()<0.110){
                         motor_z_sentido_1(vz);
-                        step_z++;
+                        step_z+=4;
                     }
 
                     if(botoes_nucleo.read()>0.25 && botoes_nucleo.read()<0.26){
                         motor_z_sentido_2(vz_inv);
-                        step_z--;
+                        step_z-=4;
                     }
 
                     // if(botoes_nucleo>0.800 && botoes_nucleo<0.815){
                     // enter
                     // }
                     
-                    //print_lcd(step_x, step_y, step_z);//função de print dos pulsos e deslocamentos
+                    print_lcd(step_x, step_y, step_z);//função de print dos pulsos e deslocamentos
                 }
         }
         else{
