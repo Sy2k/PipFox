@@ -47,11 +47,10 @@ DigitalOut led_azul(PC_12);
 
 // Declaracao variavel de posicionamento do joystick
 int x, y;
+bool movendo_em_x,movendo_em_y,movendo_em_z;
 
-//variáveis que mostram se o referenciamento está sendo feito
-bool movendo_em_x = 0;
-bool movendo_em_y = 0;
-bool movendo_em_z = 0;
+//variáveis que mostram em que direcao a movimentacao esta sendo feita
+
 
 //variáveis que demonstram se o sistema está referenciado ou não em cada um dos eixos. 
 bool ref_x_feito = 0;
@@ -100,9 +99,6 @@ void motor_x_sentido_1(int tempo){
     for(int i = 0; i <4;i++){
         motor_x = 1 << i;
         wait_ms(tempo);
-        if(estado_sis==0){
-            break;
-        }
     }
 }
 
@@ -110,9 +106,6 @@ void motor_x_sentido_2(int tempo){
     for(int i= 3;i>-1;i--){
         motor_x = 1 << i;
         wait_ms(tempo);
-        if(estado_sis==0){
-            break;
-        }
     }
 }
     
@@ -120,9 +113,6 @@ void motor_y_sentido_1(int tempo){
     for(int i = 0; i <4;i++){
         motor_y = 1 << i;
         wait_ms(tempo);
-        if(estado_sis==0){
-            break;
-        }
     }
 }
 
@@ -131,9 +121,6 @@ void motor_y_sentido_2(int tempo){
     for(int i= 3;i>-1;i--){
         motor_y = 1 << i;
         wait_ms(tempo);
-        if(estado_sis==0){
-            break;
-        }
     }
 }
     
@@ -141,9 +128,6 @@ void motor_z_sentido_1(int tempo){
     for(int z = 0; z <4;z++){
         motor_z = 1 << z;
         wait_ms(tempo);
-        if(estado_sis==0){
-            break;
-        }
     }
 }
 
@@ -151,9 +135,6 @@ void motor_z_sentido_2(int tempo){
     for(int z = 3; z > -1;z--){
         motor_z = 1 << z;
         wait_ms(tempo);
-        if(estado_sis==0){
-            break;
-        }
     }
 }
 
@@ -170,16 +151,23 @@ void Mz_off(){
 void ref(){
     if (movendo_em_x==1)
     {
+        pc.printf("\r referenciou em x\n");
+        movendo_em_x = 0;
         ref_x_feito=1;
         Mx_off();
     }
     else if(movendo_em_y==1)
     {
+        pc.printf("\r referenciou em y\n");
+
+        movendo_em_y = 0;
         ref_y_feito=1;
         My_off();
     }
     else if(movendo_em_z==1)
-    {
+    {        
+        pc.printf("\r referenciou em z\n");
+        movendo_em_z = 0;
         ref_z_feito=1;
         Mz_off();
     }
@@ -200,7 +188,7 @@ void ref(){
 // } 
 
 void be(){
-    estado_sis=0;//entrou em estado de emergencia
+    estado_sis = 0;//entrou em estado de emergencia
     step_x = 0;//pensar se precisa checar antes de zerar o valor 
     step_y = 0;
     step_z = 0;
@@ -214,7 +202,7 @@ void sair_emer(){
         ref_x_feito=0;//zerar o referenciamento de todos os eixos
         ref_y_feito=0;
         ref_z_feito=0;
-        debounce_emer.reset();//resetar timer de reset
+        // debounce_emer.reset();//resetar timer de reset
         pc.printf("\r saindo do estado de emergência\n");
     //}
 }
@@ -228,77 +216,84 @@ void endstop_crash(){
 int main(){
     Mz_off();
     Mx_off();
-    My_off();
-
+    My_off();  
+    movendo_em_x = 0;
+    movendo_em_y = 0;
+    movendo_em_z = 0;
     //valores de tempo entre cada passo determinado como 1 ms
-    int vx = 1;
+    int vx = 3;
     int vx_inv = vx;
-    int vy = 1;
+    int vy = 3;
     int vy_inv = vy;
-    int vz = 1;
+    int vz = 3;
     int vz_inv = vz;
     botao_emergencia.mode(PullUp);//definição do botão de emergencia como PullUp -> ISSO DAQUI TA ESTRANHO
     pc.baud(9600);//definição do baud rate da comunicação serial usb
     botao_emergencia.fall(&be);
     botao_emergencia.rise(&sair_emer);
     endstops.fall(&ref);
-    
     while(1){
             x = Ax.read_u16();//ou Ax.read*1000()
             y = Ay.read_u16();//ou Ay.read*1000()   
             if(estado_sis==1){//não está em estado emergencia
                 
                 //HOMING - referenciamento dos eixos
-                
                 if(ref_x_feito==0){
                     movendo_em_x=1;
-                    while(1){
+                    while(ref_x_feito==0){
                         pc.printf("\rdentro_refx\n");
                         motor_x_sentido_1(vx);
+                        if(estado_sis==0){
+                            break;
+                        }
                     }
                 }
                 else if(ref_y_feito == 0){
                     movendo_em_y=1;
-                    while(1){
+                    while(ref_y_feito == 0){
                         pc.printf("\rdentro_refy\n");
                         motor_y_sentido_1(vy);
+                        if(estado_sis==0){
+                            break;
+                        }
                     }
                 }
 
-                else if(ref_y_feito ==1){
+                else if(ref_z_feito ==0){
                     movendo_em_z=1;
-                    while(1){
+                    while(ref_z_feito == 0){
                         pc.printf("\rdentro_refz\n");
                         motor_z_sentido_1(vz);
+                        if(estado_sis==0){
+                            break;
+                        }
                     }
                 }
-                
                 
                 else{
                     pc.printf("\rreferenciado\n");
                     
                     //Condições para a movimentação dependendo da posição do joystick
-                    if(x > CXmax)
+                    if(x > CXmax && estado_sis == 1)
                     {
                     // int vx = map(x, CXmax, Xmax, 5, 0.5);
                         motor_x_sentido_1(vx); //dando certo
                         pc.printf("\rmotor_x_sentido1\n");
-
                         step_x++;
                     }
-                    if(x < CXmin)
+                    if(x < CXmin && estado_sis == 1)
                     {
                         //int vx_inv = map(x, CXmin, Xmin, 0.5, 5);
                         motor_x_sentido_2(vx_inv); //dando errado
-                        step_x--;
+                        step_x--; 
                     }
-                    if(y > CYmax)
+                    if(y > CYmax && estado_sis == 1)
                     {
                         //int vy = map(y, CYmax, Ymax, 5, 0.5);
                         motor_y_sentido_1(vy);
                         step_y++;
                     }
-                    if(y < CYmin)
+                    if(y < CYmin && estado_sis == 1)
                     {
                     // int vy_inv = map(y, CYmin ,Ymin, 0.5, 5);
                         motor_y_sentido_2(vy_inv);     
@@ -319,11 +314,11 @@ int main(){
                     // enter
                     // }
                     
-                    print_lcd(step_x, step_y, step_z);//função de print dos pulsos e deslocamentos
+                    //print_lcd(step_x, step_y, step_z);//função de print dos pulsos e deslocamentos
                 }
         }
         else{
-            be();
+            // be();
         }
     }
 }
