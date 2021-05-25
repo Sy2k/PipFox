@@ -18,6 +18,8 @@ Timer debounce_emer;
 
 Timer debounce_endstop;
 
+Timer tempo_de_funcionamento;
+
 //Botao de emergencia
 InterruptIn botao_emergencia(PC_13);
 
@@ -52,7 +54,8 @@ DigitalOut led_azul(PC_12);
 char solta[3];
 char coleta[3];
 char atual[3];
-char distancia_pega_atual[3];
+char distancia_coleta_atual[3];
+char distancia_solta_coleta[3];
 
 // Declaracao variavel de posicionamento do joystick
 int x, y;
@@ -67,16 +70,17 @@ bool ref_y_feito = 0;
 bool ref_z_feito = 0;
 
 //variável responsável por determinar se o sistema está em estado de emergência ou não. Estado igual a 1 significa que o sistema não está em estado de emergência
-bool estado_sis = 1;
+int estado_sis = 1;//0 -> emergencia; -> 1 funcionamento normal; 2-> fim do processo
 
 //inicialização dos contadores de passos
 int step_x = 0;
 int step_y = 0;
 int step_z = 0;
-
-bool determinar_coleta=1;
-int printar=1;
-int tipo_de_movimento=0;//0 atual para pega ou 1 de pega para solta
+//variaveis variaveis responsaveis pela logica
+bool determinar_ponto=1;//1 -> ponto de coleta; 0 -> ponto de solta
+bool print_valor_pos=1;
+bool tipo_de_movimento=0;//0 atual para coleta ou 1 de pega para solta
+bool rotina_principal=0;//1 para rotina principal e 0 para outras rotinas
 
 //ESSA PARTE VAI TER QUE REFAZER e ALTERAR OS VALORES
 // X Joystick
@@ -95,24 +99,22 @@ int tipo_de_movimento=0;//0 atual para pega ou 1 de pega para solta
 #define Ymax 65000
 #define Ymin 0
 
-
-
 void print_lcd(int step_x, int step_y, int step_z)
 {
-       lcd.cls();//limpar a tela
-    //    float distancia_x = step_x*passo_linear_x/steps_por_revol_x;//calculo da distancia percorrida em x
-    //    float distancia_y = step_y*passo_linear_y/steps_por_revol_y;//calculo da distancia percorrida em y
-    //    float distancia_z = step_z*passo_linear_z/steps_por_revol_z;//calculo da distancia percorrida em z
-    //    lcd.printf("dx=%.0f dy=%.0f\ndz=%.0f", distancia_x, distancia_y, distancia_z);
-    //    wait(1);//COLOCAR NA MESMA POSICAO
-    //    lcd.cls();
-       lcd.printf("Px=%2d Py=%2d\nPz=%2d", step_x, step_y, step_z);
-    //    wait(1);
+        lcd.cls();//limpar a tela
+    //  float distancia_x = step_x*passo_linear_x/steps_por_revol_x;//calculo da distancia percorrida em x
+    //  float distancia_y = step_y*passo_linear_y/steps_por_revol_y;//calculo da distancia percorrida em y
+    //  float distancia_z = step_z*passo_linear_z/steps_por_revol_z;//calculo da distancia percorrida em z
+    //  lcd.printf("dx=%.0f dy=%.0f\ndz=%.0f", distancia_x, distancia_y, distancia_z);
+    //  wait(1);//COLOCAR NA MESMA POSICAO
+        lcd.cls();
+        lcd.printf("Px=%2d Py=%2d\nPz=%2d", step_x, step_y, step_z);
+    //  wait(1);
 }
 
 void motor_x_sentido_1(int tempo){
     for(int i = 0; i <4;i++){
-        motor_x = 1 << i;
+        motor_x = 1 << i;       //verificar se o estado do sistema eh 0 ou 1
         wait_ms(tempo);
     }
 }
@@ -208,8 +210,8 @@ void be(){
     ref_x_feito=0;//zerar o referenciamento de todos os eixos
     ref_y_feito=0;
     ref_z_feito=0;
-    determinar_coleta=0;
-    printar=0;
+    determinar_ponto=0;
+    print_valor_pos=0;
     char solta[3]={0,0,0};
     char coleta[3]={0,0,0};
     
@@ -258,7 +260,7 @@ int main(){
     while(1){
             x = Ax.read_u16();//ou Ax.read*1000()
             y = Ay.read_u16();//ou Ay.read*1000()   
-            if(estado_sis==1){//não está em estado emergencia
+            if(estado_sis!=0){//não está em estado emergencia
                 
                 //HOMING - referenciamento dos eixos
                 if(ref_x_feito==0){
@@ -297,7 +299,7 @@ int main(){
                 }
                 
                 else{
-                    if(printar==1){
+                    if(print_valor_pos==1){
                     pc.printf("\rreferenciado e esperando enter para determinar ponto de coleta\n");
                     }
                     //Condições para a movimentação dependendo da posição do joystick
@@ -337,19 +339,19 @@ int main(){
                         step_z-=4;
                     }
 
-                    if(enter==0 && printar==1){
+                    if(enter==0 && print_valor_pos==1){
                         pc.printf("\rclicaram em enter viu\n");
-                        if(determinar_coleta==1){
+                        if(determinar_ponto==1){
                             coleta[0]=step_x;
                             coleta[1]=step_y;
                             coleta[2]=step_z;
-                            determinar_coleta==0;
+                            determinar_ponto==0;
                         }
-                        if(determinar_coleta==1){
+                        if(determinar_ponto==0){//determinar 
                             solta[0]=step_x;
                             solta[1]=step_y;
                             solta[2]=step_z;
-                            printar=0;    
+                            print_valor_pos=0;    
                             pc.printf("\ragora vamos printar\n");
  
                         }
@@ -357,60 +359,104 @@ int main(){
                     
                     atual[0]=step_x;
                     atual[1]=step_y;
-                    atual[2]=step_z;                  
+                    atual[2]=step_z;   
+
+                    //calculo para as posições 
                     for(int i = 0; i < 3; ++i) {
-                                distancia_pega_atual[i]=coleta[i]-atual[i];
+                                distancia_coleta_atual[i]=coleta[i]-atual[i];
+                                distancia_solta_coleta[i]=solta[i]-coleta[i];
                             } 
 
-                    if(printar==0){
+                    if(print_valor_pos==0){//fazendo calculo para distancia entre o ponto de coleta e o atual
                         for(int i = 0; i < 3; ++i) {
-                                printf("%d\n", distancia_pega_atual[i]);
+                                printf("%d\n", distancia_coleta_atual[i]);
                             }                             
                     }
-                    //talvez seja necessario fazer uma variável para entrar nesse estado de movimentacao 
-                    if(movimentar_para_pega==0){
+                    //local atual para de coleta 
+                    if(tipo_de_movimento==0 && rotina_principal==1){
+                        tempo_de_funcionamento.reset();//zera para caso o valor nao seja 0
+                        tempo_de_funcionamento.start();//começa o contador de tempo
                     //para X
-                    if(distancia_pega_atual[0]>0){
-                        for (int e =0; e<distancia_pega_atual[0]/4;++1){
-                        motor_x_sentido_1(vx);
+                        int dx= distancia_coleta_atual[0]/4;
+                        if(distancia_coleta_atual[0]>0){
+                            for (int e =0; e<dx;++1){
+                            motor_x_sentido_1(vx);
+                            }
                         }
-                    }
-                    if(distancia_pega_atual[0]<0){
-                        for (int e =0; e<distancia_pega_atual[0]/4;++1){
-                        motor_x_sentido_2(vx);
+                        if(distancia_coleta_atual[0]<0){
+                            for (int e =0; e<dx;++1){
+                            motor_x_sentido_2(vx);
+                            }
                         }
-                    }
-                    //para Y
-                    if(distancia_pega_atual[1]>0){
-                        for (int e =0; e<distancia_pega_atual[1]/4;++1){
-                        motor_y_sentido_1(vy);
+                        //para Y
+                        int dy= distancia_coleta_atual[1]/4;
+                        if(distancia_coleta_atual[1]>0){
+                            for (int e =0; e<dy;++1){
+                            motor_y_sentido_1(vy);
+                            }
                         }
-                    }
-                    if(distancia_pega_atual[1]<0){
-                        for (int e =0; e<distancia_pega_atual[1]/4;++1){
-                        motor_y_sentido_2(vy);
+                        if(distancia_coleta_atual[1]<0){
+                            for (int e =0; e<dy;++1){
+                            motor_y_sentido_2(vy);
+                            }
                         }
-                    }
-                    //para Z
-                    if(distancia_pega_atual[2]>0){
-                        for (int e =0; e<distancia_pega_atual[2]/4;++1){
-                        motor_z_sentido_1(vz);
+                        //para Z
+                        int dz= distancia_coleta_atual[2]/4;
+                        if(distancia_coleta_atual[2]>0){
+                            for (int e =0; e<dz;++1){
+                            motor_z_sentido_1(vz);
+                            }
                         }
+                        if(distancia_coleta_atual[2]<0){
+                            for (int e =0; e<dz;++1){
+                            motor_z_sentido_2(vz);
+                            }
                     }
-                    if(distancia_pega_atual[2]<0){
-                        for (int e =0; e<distancia_pega_atual[2]/4;++1){
-                        motor_z_sentido_2(vz);
-                        }
+                    tipo_de_movimento=1;
                     }
-                    movimentar_para_pega=1;
+                    //movimento do ponto de coleta para solta
+                    if(tipo_de_movimento==1 && rotina_principal==1){ 
+                            if(distancia_solta_coleta[0]>0){
+                            for (int e =0; e<distancia_solta_coleta[0]/4;++1){
+                            motor_x_sentido_1(vx);
+                                }
+                            }
+                            if(distancia_solta_coleta[0]<0){
+                                for (int e =0; e<distancia_solta_coleta[0]/4;++1){
+                                motor_x_sentido_2(vx);
+                                }
+                            }
+                            //para Y
+                            if(distancia_solta_coleta[1]>0){
+                                for (int e =0; e<distancia_solta_coleta[1]/4;++1){
+                                motor_y_sentido_1(vy);
+                                }
+                            }
+                            if(distancia_solta_coleta[1]<0){
+                                for (int e =0; e<distancia_solta_coleta[1]/4;++1){
+                                motor_y_sentido_2(vy);
+                                }
+                            }
+                            //para Z
+                            if(distancia_solta_coleta[2]>0){
+                                for (int e =0; e<distancia_solta_coleta[2]/4;++1){
+                                motor_z_sentido_1(vz);
+                                }
+                            }
+                            if(distancia_solta_coleta[2]<0){
+                                for (int e =0; e<distancia_solta_coleta[2]/4;++1){
+                                motor_z_sentido_2(vz);
+                                }
+                            }
+                        estado_sis=2;
                     }
 
-                    if(movimentar_para_pega=1){
-                        //COLOCAR MAIS UM BANDO DE IF
-                    }
-
-                    
+                    if(estado_sis==1){
                     print_lcd(step_x, step_y, step_z); //função de print dos pulsos e deslocamentos
+                    }
+                    if(estado_sis==2){
+                        lcd.printf("acabou a operação depois de x segundos", tempo_de_funcionamento)
+                    }
                 }
         }
         else{

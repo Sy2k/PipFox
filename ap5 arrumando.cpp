@@ -285,14 +285,14 @@ int main(){
                     if(x > CXmax && estado_sis == 1)
                     {
                     // int vx = map(x, CXmax, Xmax, 5, 0.5);
-                        motor_x_sentido_1(vx); //dando certo
+                        motor_x_sentido_1(vx); 
                         pc.printf("\rmotor_x_sentido1\n");
                         step_x+=4;
                     }
                     if(x < CXmin && estado_sis == 1)
                     {
                         //int vx_inv = map(x, CXmin, Xmin, 0.5, 5);
-                        motor_x_sentido_2(vx_inv); //dando errado
+                        motor_x_sentido_2(vx_inv); 
                         step_x-=4; 
                     }
                     if(y > CYmax && estado_sis == 1)
