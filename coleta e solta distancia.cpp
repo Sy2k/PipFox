@@ -376,75 +376,96 @@ int main(){
                     if(tipo_de_movimento==0 && rotina_principal==1){
                         tempo_de_funcionamento.reset();//zera para caso o valor nao seja 0
                         tempo_de_funcionamento.start();//começa o contador de tempo
-                    //para X
-                        int dx= distancia_coleta_atual[0]/4;
+                        //para X
+                        int m_dx= distancia_coleta_atual[0];
+                        int dx=m_dx/4;
+                        pc.printf("%d",m_dx);
+                        
                         if(distancia_coleta_atual[0]>0){
-                            for (int e =0; e<dx;++1){
+                            for (int e =0; e<m_dx;e++){
                             motor_x_sentido_1(vx);
                             }
                         }
-                        if(distancia_coleta_atual[0]<0){
-                            for (int e =0; e<dx;++1){
+                        
+                        if(distancia_coleta_atual[0]<0){//ARRUMAR ESSA MERDA
+                            for (int e =0; e<dx;e++){
                             motor_x_sentido_2(vx);
                             }
                         }
                         //para Y
-                        int dy= distancia_coleta_atual[1]/4;
+                        int m_dy= distancia_coleta_atual[1];
+                        int dy=m_dy/4;
+                        pc.printf("%d",m_dy);
+
                         if(distancia_coleta_atual[1]>0){
-                            for (int e =0; e<dy;++1){
+                            for (int e =0; e<dy;e++){
                             motor_y_sentido_1(vy);
                             }
                         }
                         if(distancia_coleta_atual[1]<0){
-                            for (int e =0; e<dy;++1){
+                            for (int e =0; e<dy;e++){
                             motor_y_sentido_2(vy);
                             }
                         }
                         //para Z
-                        int dz= distancia_coleta_atual[2]/4;
+                        int m_dz= distancia_coleta_atual[2];
+                        int dz=m_dz/4;
+                        pc.printf("%d",m_dz);
+                        
                         if(distancia_coleta_atual[2]>0){
-                            for (int e =0; e<dz;++1){
+                            for (int e =0; e<dz;e++){
                             motor_z_sentido_1(vz);
                             }
                         }
                         if(distancia_coleta_atual[2]<0){
-                            for (int e =0; e<dz;++1){
+                            for (int e =0; e<dz;e++){
                             motor_z_sentido_2(vz);
                             }
                     }
+                    
                     tipo_de_movimento=1;
                     }
                     //movimento do ponto de coleta para solta
                     if(tipo_de_movimento==1 && rotina_principal==1){ 
+                            int m_dx= distancia_solta_coleta[0];
+                            int dx=m_dx/4;
+                            pc.printf("%d",m_dx);
+
                             if(distancia_solta_coleta[0]>0){
-                            for (int e =0; e<distancia_solta_coleta[0]/4;++1){
+                            for (int e =0; e<dx;e++){
                             motor_x_sentido_1(vx);
                                 }
                             }
                             if(distancia_solta_coleta[0]<0){
-                                for (int e =0; e<distancia_solta_coleta[0]/4;++1){
+                                for (int e =0; e<dx;e++){
                                 motor_x_sentido_2(vx);
                                 }
                             }
                             //para Y
+                            int m_dy= distancia_solta_coleta[1];
+                            int dy=m_dy/4;
+                            pc.printf("%d",m_dy);
                             if(distancia_solta_coleta[1]>0){
-                                for (int e =0; e<distancia_solta_coleta[1]/4;++1){
+                                for (int e =0; e<dy;e++){
                                 motor_y_sentido_1(vy);
                                 }
                             }
                             if(distancia_solta_coleta[1]<0){
-                                for (int e =0; e<distancia_solta_coleta[1]/4;++1){
+                                for (int e =0; e<dy;e++){
                                 motor_y_sentido_2(vy);
                                 }
                             }
                             //para Z
+                            int m_dz= distancia_solta_coleta[2];
+                            int dz=m_dz/4;
+                            pc.printf("%d",m_dz);
                             if(distancia_solta_coleta[2]>0){
-                                for (int e =0; e<distancia_solta_coleta[2]/4;++1){
+                                for (int e =0; e<dz;e++){
                                 motor_z_sentido_1(vz);
                                 }
                             }
                             if(distancia_solta_coleta[2]<0){
-                                for (int e =0; e<distancia_solta_coleta[2]/4;++1){
+                                for (int e =0; e<dz;e++){
                                 motor_z_sentido_2(vz);
                                 }
                             }
@@ -455,7 +476,7 @@ int main(){
                     print_lcd(step_x, step_y, step_z); //função de print dos pulsos e deslocamentos
                     }
                     if(estado_sis==2){
-                        lcd.printf("acabou a operação depois de x segundos", tempo_de_funcionamento)
+                        lcd.printf("acabou a operação depois de x segundos %d", tempo_de_funcionamento.read())
                     }
                 }
         }
