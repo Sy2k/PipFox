@@ -1,8 +1,9 @@
-//#include "TextLCD.h"
-
+//----------- incluindo bibliotecas ----------------
+#include <MCUFRIEND_kbv.h>
+#include "Arduino.h"
+#include "mbed.h"
 
 //CONFIGURACAO DO DISPLAY   
-#include <MCUFRIEND_kbv.h>
 MCUFRIEND_kbv tft;
 #define BLACK   0x0000
 #define BLUE    0x001F
@@ -15,9 +16,7 @@ MCUFRIEND_kbv tft;
 
 uint8_t Orientation = 1;  
 
-#include "Arduino.h"
 
-#include "mbed.h"
 //Definição das portas dos motores
 BusOut motor_x(PC_4,PB_13,PB_14,PB_1);
 

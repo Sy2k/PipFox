@@ -90,11 +90,21 @@ bool ref_x_feito = 0;
 bool ref_y_feito = 0;
 bool ref_z_feito = 0;
 
-//variaveis variaveis responsaveis pela logica
+//----------------------- variaveis variaveis responsaveis pela logica -----------------------
 bool determinar_ponto = 1; //1 -> ponto de coleta; 0 -> ponto de solta
 bool print_valor_pos = 1;
 bool tipo_de_movimento = 0; //0 atual para coleta ou 1 de pega para solta
 bool rotina_principal = 0; //1 para rotina principal e 0 para outras rotinas
+
+// ----------------------- declaracao de funcoes -----------------------
+void print_lcd();
+void motor();
+void Mx_off();
+void My_off();
+void Mz_off();
+void ref();
+void be();
+void sair_emerg();
 
 #endif 
 
