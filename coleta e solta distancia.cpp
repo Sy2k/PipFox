@@ -387,7 +387,7 @@ int main(){
                             }
                         }
                         
-                        if(distancia_coleta_atual[0]<0){//ARRUMAR ESSA MERDA
+                        if(distancia_coleta_atual[0]<0){
                             for (int e =0; e<dx;e++){
                             motor_x_sentido_2(vx);
                             }
@@ -423,9 +423,9 @@ int main(){
                             }
                     }
                     
-                    tipo_de_movimento=1;
+                    tipo_de_movimento=1;//movimentação da rotina principal
                     }
-                    //movimento do ponto de coleta para solta
+                    //movimento do ponto de COLETA para SOLTA
                     if(tipo_de_movimento==1 && rotina_principal==1){ 
                             int m_dx= distancia_solta_coleta[0];
                             int dx=m_dx/4;
@@ -469,7 +469,7 @@ int main(){
                                 motor_z_sentido_2(vz);
                                 }
                             }
-                        estado_sis=2;
+                        estado_sis=2;//maquina passou para o estado de conclusao
                     }
 
                     if(estado_sis==1){
