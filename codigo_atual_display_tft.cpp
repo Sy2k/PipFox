@@ -1,4 +1,21 @@
-#include "TextLCD.h"
+//#include "TextLCD.h"
+
+
+//CONFIGURACAO DO DISPLAY   
+#include <MCUFRIEND_kbv.h>
+MCUFRIEND_kbv tft;
+#define BLACK   0x0000
+#define BLUE    0x001F
+#define RED     0xF800
+#define GREEN   0x07E0
+#define CYAN    0x07FF
+#define MAGENTA 0xF81F
+#define YELLOW  0xFFE0
+#define WHITE   0xFFFF
+
+uint8_t Orientation = 1;  
+
+#include "Arduino.h"
 
 #include "mbed.h"
 //Definição das portas dos motores
@@ -8,8 +25,8 @@ BusOut motor_y(PB_2,PB_11,PB_12,PA_11);
 
 BusOut motor_z(PA_12,PC_5,PC_6,PC_8);
 
-//LCD
-TextLCD lcd(D8, D9, D4, D5, D6, D7); //definição das portas rs,e,d0,d1,d2,d3
+//LCD - NAO USADO MAIS
+//TextLCD lcd(D8, D9, D4, D5, D6, D7); //definição das portas rs,e,d0,d1,d2,d3
 
 //inicializar usb para visualizar dados em monitor serial
 Serial pc(USBTX,USBRX);
@@ -58,8 +75,15 @@ char distancia_coleta_atual[3];
 char distancia_solta_coleta[3];
 
 // Declaracao variavel de posicionamento do joystick
-int x, y;
+int x, y, vx, vx_inv, vy, vy_inv, vz, vz_inv;
 bool movendo_em_x,movendo_em_y,movendo_em_z;
+
+    // int vx = 3;
+    // int vx_inv = vx;
+    // int vy = 3;
+    // int vy_inv = vy;
+    // int vz = 3;
+    // int vz_inv = vz;
 
 //variáveis que mostram em que direcao a movimentacao esta sendo feita
 
@@ -101,15 +125,14 @@ bool rotina_principal=0;//1 para rotina principal e 0 para outras rotinas
 
 void print_lcd(int step_x, int step_y, int step_z)
 {
-        lcd.cls();//limpar a tela
-    //  float distancia_x = step_x*passo_linear_x/steps_por_revol_x;//calculo da distancia percorrida em x
-    //  float distancia_y = step_y*passo_linear_y/steps_por_revol_y;//calculo da distancia percorrida em y
-    //  float distancia_z = step_z*passo_linear_z/steps_por_revol_z;//calculo da distancia percorrida em z
-    //  lcd.printf("dx=%.0f dy=%.0f\ndz=%.0f", distancia_x, distancia_y, distancia_z);
-    //  wait(1);//COLOCAR NA MESMA POSICAO
-        lcd.cls();
-        lcd.printf("Px=%2d Py=%2d\nPz=%2d", step_x, step_y, step_z);
-    //  wait(1);
+        tft.setTextColor(GREEN);
+        tft.setTextSize(3);
+        tft.setCursor(0,10); //  Orientação do texto X,Y
+        int distancia_x = step_x*passo_linear_x/steps_por_revol_x;//calculo da distancia percorrida em x
+        int distancia_y = step_y*passo_linear_y/steps_por_revol_y;//calculo da distancia percorrida em y
+        int distancia_z = step_z*passo_linear_z/steps_por_revol_z;//calculo da distancia percorrida em z
+        tft.printf("distancia_x=%.2f\ndistancia_y=%.2f\ndistancia_z=%.f\npassos_x=%.0f\npassos_y=%.0f", distancia_x, distancia_y, distancia_z,step_x,step_y);
+        tft.printf("\npassos_z=%.0f",step_z);
 }
 
 void motor_x_sentido_1(int tempo){
@@ -240,7 +263,14 @@ void sair_emer(){
 //     ref_z_feito=0;
 //     pc.printf("\r estado de emergencia devido a batida \n");
 // }
-int main(){
+void setup(void){
+    tft.reset();
+    tft.begin();
+    tft.setRotation(Orientation);
+    tft.fillScreen(BLACK);  // Fundo do Display
+    print_lcd(step_x,step_y,step_z);     //PRA MIM ISSO NAO FAZ SENTIDO ESTAR AQUI DENTRO
+    delay(1000);//tava 1000 antes, ACHEI DEMAIS
+
     Mz_off();
     Mx_off();
     My_off();  
@@ -248,18 +278,19 @@ int main(){
     movendo_em_y = 0;
     movendo_em_z = 0;
     //valores de tempo entre cada passo determinado como 1 ms
-    int vx = 3;
-    int vx_inv = vx;
-    int vy = 3;
-    int vy_inv = vy;
-    int vz = 3;
-    int vz_inv = vz;
+    vx = 3;
+    vx_inv = vx;
+    vy = 3;
+    vy_inv = vy;
+    vz = 3;
+    vz_inv = vz;
     botao_emergencia.mode(PullUp);//definição do botão de emergencia como PullUp -> ISSO DAQUI TA ESTRANHO
     pc.baud(9600);//definição do baud rate da comunicação serial usb
     botao_emergencia.fall(&be);
     botao_emergencia.rise(&sair_emer);
     endstops.fall(&ref);
-    while(1){
+}
+    void loop(void){
             x = Ax.read_u16();//ou Ax.read*1000()
             y = Ay.read_u16();//ou Ay.read*1000()   
             if(estado_sis!=0){//não está em estado emergencia
@@ -375,7 +406,7 @@ int main(){
                             }                             
                     }
                     //local atual para de coleta 
-                    if(tipo_de_movimento==0 && rotina_principal==1){
+                     if(tipo_de_movimento==0 && rotina_principal==1){
                         tempo_de_funcionamento.reset();//zera para caso o valor nao seja 0
                         tempo_de_funcionamento.start();//começa o contador de tempo
                         //para X
@@ -478,7 +509,7 @@ int main(){
                     print_lcd(step_x, step_y, step_z); //função de print dos pulsos e deslocamentos
                     }
                     if(estado_sis==2){
-                        lcd.printf("acabou a operação depois de x segundos %d", tempo_de_funcionamento.read());
+                        tft.printf("acabou a operação depois de x segundos %d", tempo_de_funcionamento.read());
                     }
                 }
         }
@@ -486,6 +517,6 @@ int main(){
             // be();
         }
     }
-}
+
 
                             // int coleta[] = {[step_x, step_y, step_z,volume],[],[]};
