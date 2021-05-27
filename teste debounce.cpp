@@ -355,7 +355,7 @@ void loop(void){
                     solta[1]=step_y;
                     solta[2]=step_z;
                     posicao=1;  
-                    debouce_enter.reset();
+                    debounce_enter.reset();
                 }
                 
                 
