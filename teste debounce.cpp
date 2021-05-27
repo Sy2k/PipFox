@@ -79,7 +79,6 @@ int posicao = 0;
 int step_x = 0;
 int step_y = 0;
 int step_z = 0;
-
  
 // ----------------------- variaveis relacionadas ao motor e o joystick -----------------------
 int x, y, vx, vx_inv, vy, vy_inv, vz, vz_inv;
@@ -170,7 +169,7 @@ void ref(){
         debounce_endstop.start();
     }
 
-    else if(movendo_em_y==1 && debounce_endstop.read_ms()>500){
+    else if(movendo_em_y==1 && debounce_endstop.read_ms()>250){
         pc.printf("\r referenciou em y\n");
         // lcd.printf("\r referenciou em y\n");
         movendo_em_y = 0;
@@ -180,7 +179,7 @@ void ref(){
         debounce_endstop.start();
     }
 
-    else if(movendo_em_z==1 && debounce_endstop.read_ms()>500){
+    else if(movendo_em_z==1 && debounce_endstop.read_ms()>250){
         pc.printf("\r referenciou em z\n");
         // lcd.printf("\r referenciou em z\n");
         movendo_em_z = 0;
@@ -190,6 +189,8 @@ void ref(){
         step_x=0;
         step_y=0;
         step_z=0;
+        pc.printf("\rreferenciado e esperando enter para determinar ponto de coleta\n");
+        wait(3);
     }
 }
 
@@ -199,17 +200,18 @@ void be(){
     step_x = 0;//pensar se precisa checar antes de zerar o valor 
     step_y = 0;
     step_z = 0;
-    ref_x_feito=0;//zerar o referenciamento de todos os eixos
-    ref_y_feito=0;
-    ref_z_feito=0;
-    determinar_ponto=1;
-    print_valor_pos=1;
-    posicao=0;
+    ref_x_feito = 0;//zerar o referenciamento de todos os eixos
+    ref_y_feito = 0;
+    ref_z_feito = 0;
+    determinar_ponto = 1;
+    print_valor_pos = 1;
+    tipo_de_movimento = 0;
+    posicao = 0;
+    rotina_principal = 0;
     for(int i = 0; i < 3; ++i){
         solta[i]=0;
         coleta[i]=0;
     } 
-    
     debounce_emer.start();//iniciar timer para debounce
     pc.printf("\r estado de emergencia\n");
     // lcd.printf("\r estado de emergencia\n");
@@ -222,20 +224,16 @@ void sair_emer(){
         ref_y_feito = 0;
         ref_z_feito = 0;
         determinar_ponto  = 1;
+        tipo_de_movimento = 0;
         print_valor_pos = 1;
         posicao = 0;
+        rotina_principal=0;
         debounce_emer.reset();//resetar timer de reset
         pc.printf("\r saindo do estado de emergência\n");
         // lcd.printf("\r saindo do estado de emergência\n");
     }
 }
-// void endstop_crash(){
-//     estado_sis=0;
-//     ref_x_feito=0;
-//     ref_y_feito=0;
-//     ref_z_feito=0;
-//     pc.printf("\r estado de emergencia devido a batida \n");
-// }
+
 void setup(void){
     tft.reset();
     tft.begin();
@@ -303,11 +301,12 @@ void loop(void){
                     }
                 }
             }
-            
+            // if(ref_z_feito==1){
+            //         pc.printf("\rreferenciado e esperando enter para determinar ponto de coleta\n");
+            //     }
+                
             else{
-                if(print_valor_pos==1){
-                    pc.printf("\rreferenciado e esperando enter para determinar ponto de coleta\n");
-                }
+                if(rotina_principal==0){//rotina principal que nao eh a de movimentacao automatica (PIPETAGEM)
                 //Condições para a movimentação dependendo da posição do joystick
                 if(x > CXmax && estado_sis == 1){
                 // int vx = map(x, CXmax, Xmax, 5, 0.5);
@@ -341,40 +340,44 @@ void loop(void){
                 if (z1==0 || z2==0){
                     Mz_off();
                 }
-
-                if(enter==0 && print_valor_pos==1){
+                if(estado_sis==1){
+                    print_lcd(step_x, step_y, step_z); //função de print dos pulsos e deslocamentos
+                }
+                if(enter==0 && print_valor_pos==1 && posicao==0){
                     pc.printf("\rdeterminando coleta\n");
-                    coleta[0]=step_x;
-                    coleta[1]=step_y;
-                    coleta[2]=step_z;
-                    determinar_ponto=0;
+                    coleta[0] = step_x;
+                    coleta[1] = step_y;
+                    coleta[2] = step_z;
+                    determinar_ponto = 0;
                     debounce_enter.start();
                 }    
-                if(determinar_ponto==0 && enter==0 && debounce_enter.read_ms()>50){//determinar 
-                    solta[0]=step_x;
-                    solta[1]=step_y;
-                    solta[2]=step_z;
-                    posicao=1;  
+                if(determinar_ponto==0 && enter==0 && posicao==0 && debounce_enter.read_ms()>250){//determinar 
+                    pc.printf("\rdeterminando solta e esperando enter para iniciar calculos\n");
+                    solta[0] = step_x;
+                    solta[1] = step_y;
+                    solta[2] = step_z;
+                    posicao = 1;  
                     debounce_enter.reset();
+                    debounce_enter.start();
                 }
+
                 
                 
                 //calculo para as posições 
-
-                if(posicao==1){
-                    atual[0]=step_x;
-                    atual[1]=step_y;
-                    atual[2]=step_z; 
+                
+                if(posicao==1 && enter==0 && debounce_enter.read_ms()>250){
+                    atual[0] = step_x;
+                    atual[1] = step_y;
+                    atual[2] = step_z; 
                     for(int i = 0; i < 3; ++i) {
-                        distancia_coleta_atual[i]=coleta[i]-atual[i];
-                        distancia_solta_coleta[i]=solta[i]-coleta[i];
+                        distancia_coleta_atual[i] = coleta[i] - atual[i];
+                        distancia_solta_coleta[i] = solta[i] - coleta[i];
                     }
                     pc.printf("\rguardando posicao \n");
-                    print_valor_pos=0;
+                    //print_valor_pos=0;
                     pc.printf("\ragora vamos printar\n");
-                }
-                if(print_valor_pos==0){//fazendo calculo para distancia entre o ponto de coleta e o atual
-                    for(int i = 0; i < 3; ++i) {
+                    
+                     for(int i = 0; i < 3; ++i) {
                             printf("dist coleta para atual: %d\n", distancia_coleta_atual[i]);
                         }                         
                     wait(3);
@@ -383,67 +386,92 @@ void loop(void){
                         }            
                     wait(3);
                     rotina_principal=1;
-                }
+                    debounce_enter.reset();
+                    }
+                //if(print_valor_pos==0){//fazendo calculo para distancia entre o ponto de coleta e o atual
+                   }
+                //}
                 //local atual para de coleta 
-                    if(tipo_de_movimento==0 && rotina_principal==1){
-                    tempo_de_funcionamento.reset();//zera para caso o valor nao seja 0
-                    tempo_de_funcionamento.start();//começa o contador de tempo
-                    //para X
-                    int m_dx= distancia_coleta_atual[0];
-                    int dx=m_dx/4;
-                    pc.printf("%d",m_dx);
-                    
-                    if(m_dx>0){
-                        for (int e =0; e<dx;e++){
-                        motor_x_sentido_1(vx);
+                else{
+                    if(tipo_de_movimento==0 && rotina_principal==1){//NAO SEI SE ISSO DEVERIA SER UM WHILE
+                        pc.printf("\rcomecando movimentacao para ponto de coleta\n");
+                        tempo_de_funcionamento.reset();//zera para caso o valor nao seja 0
+                        tempo_de_funcionamento.start();//começa o contador de tempo
+                        //para X
+                        int contador = 0;
+                        
+                        if(contador==0){
+                            int m_dx= distancia_coleta_atual[0];
+                            int dx=m_dx/4;
+                            pc.printf("passos em x %d",m_dx);
+                            if(m_dx>0){
+                                for (int e =0; e<dx;e++){
+                                motor_x_sentido_1(vx);
+                                step_x+=4;
+                                }
+                            }
+                        
+                            else if(m_dx<0){
+                                for (int e =0; e<dx;e++){
+                                motor_x_sentido_2(vx);
+                                step_x-=4;
+                                }
+                            }
+                        contador+=1;
                         }
-                    }
-                    
-                    if(m_dx<0){
-                        for (int e =0; e<dx;e++){
-                        motor_x_sentido_2(vx);
-                        }
-                    }
-                    //para Y
-                    int m_dy= distancia_coleta_atual[1];
-                    int dy=m_dy/4;
-                    pc.printf("%d",m_dy);
+                        //para Y
+                        if(contador==1){
+                            
+                        int m_dy= distancia_coleta_atual[1];
+                        int dy=m_dy/4;
+                        pc.printf("passos em y %d",m_dy);
 
-                    if(m_dy>0){
-                        for (int e =0; e<dy;e++){
-                        motor_y_sentido_1(vy);
+                        if(m_dy>0){
+                            for (int e =0; e<dy;e++){
+                            motor_y_sentido_1(vy);
+                            step_y+=4;
+                            }
                         }
-                    }
-                    if(m_dy<0){
-                        for (int e =0; e<dy;e++){
-                        motor_y_sentido_2(vy);
+                        else if(m_dy<0){
+                            for (int e =0; e<dy;e++){
+                            motor_y_sentido_2(vy);
+                            step_y-=4;
+                            }
                         }
-                    }
-                    //para Z
-                    int m_dz= distancia_coleta_atual[2];
-                    int dz=m_dz/4;
-                    pc.printf("%d",m_dz);
-                    
-                    if(m_dz>0){
-                        for (int e =0; e<dz;e++){
-                        motor_z_sentido_1(vz);
+                        contador+=1;
                         }
-                    }
-                    if(m_dz<0){
-                        for (int e =0; e<dz;e++){
-                        motor_z_sentido_2(vz);
+                        //para Z
+                        if(contador==2){
+                        int m_dz= distancia_coleta_atual[2];
+                        int dz=m_dz/4;
+                        pc.printf("passos em z %d",m_dz);
+                        
+                        if(m_dz>0){
+                            for (int e =0; e<dz;e++){
+                            motor_z_sentido_1(vz);
+                            step_z+=4;
+                            }
                         }
-                }
-                
-                tipo_de_movimento=1;//movimentação da rotina principal
+                        else if(m_dz<0){
+                            for (int e =0; e<dz;e++){
+                            motor_z_sentido_2(vz);
+                            step_z-=4;
+                            }
+                        }
+                        contador+=1;
+                        }
+                    tipo_de_movimento=1;//movimentação da rotina principal
                 }
                 //movimento do ponto de COLETA para SOLTA
                 if(tipo_de_movimento==1 && rotina_principal==1){ 
+                        int contador=0;
+                        
+                        if (contador==0){
+
                         int m_dx= distancia_solta_coleta[0];
                         int dx=m_dx/4;
                         pc.printf("%d",m_dx);
-
-                        if(m_dx>0){
+                            if(m_dx>0){
                         for (int e =0; e<dx;e++){
                         motor_x_sentido_1(vx);
                             }
@@ -453,6 +481,11 @@ void loop(void){
                             motor_x_sentido_2(vx);
                             }
                         }
+                        contador+=1;
+                        }
+
+                        if (contador==1){
+                        
                         //para Y
                         int m_dy= distancia_solta_coleta[1];
                         int dy=m_dy/4;
@@ -467,6 +500,9 @@ void loop(void){
                             motor_y_sentido_2(vy);
                             }
                         }
+                        contador+=1;
+                        }
+                        if(contador==2){
                         //para Z
                         int m_dz= distancia_solta_coleta[2];
                         int dz=m_dz/4;
@@ -481,14 +517,15 @@ void loop(void){
                             motor_z_sentido_2(vz);
                             }
                         }
+                        contador+=1;
+                        }
                     estado_sis=2;//maquina passou para o estado de conclusao
+                    }
                 }
 
-                if(estado_sis==1){
-                print_lcd(step_x, step_y, step_z); //função de print dos pulsos e deslocamentos
-                }
+                
                 if(estado_sis==2){
-                    tft.printf("acabou a operação depois de x segundos %d", tempo_de_funcionamento.read());
+                    pc.printf("acabou a operação depois de x segundos %d", tempo_de_funcionamento.read());
                 }
             }
     }
