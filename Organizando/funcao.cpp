@@ -16,12 +16,26 @@ void aciona_motor(int tempo, bool sentido, BusOut &motor) {
         }
     }
 }
+
 void desliga_motor(BusOut &motor) { motor = 0, 0, 0, 0; }
 
-void Controlador::Controlador(BusOut motor_x, BusOut motor_y, BusOut motor_z) {
-    motores[0] = motor_x;
-    motores[1] = motor_y;
-    motores[2] = motor_z;
+void Controlador::variavel_default() {
+    for (int i = 0; i < 3; i++) {
+        ref_feito[i] = false;
+        coleta[i] = 0;
+        atual[i] = 0;
+        distancia_coleta_atual[i] = 0;
+        distancia_solta_coleta[i] = 0;
+        step[i] = 0;
+        step_rev[i] = 512;
+    }
+    passo[0] = 3;
+    passo[1] = 3;
+    passo[2] = 10;
+    enable = true; // 0 -> emergencia; -> 1 funcionamento normal; 2-> fim do processo
+    emergencia = false;
+    soltas = 0;
+    tempo = 3;
 }
 void Controlador::emerg() {
     for (int i = 0; i < 3; i++) {
@@ -31,10 +45,8 @@ void Controlador::emerg() {
     enable = false;
     emergencia = true;
 }
+
 void Controlador::display() {
-    tft.setTextColor(GREEN);
-    tft.setTextSize(3);
-    tft.setCursor(0, 10); //  Orientação do texto X,Y
     int dist_x = step[0] * passo[0] / step_rev[0];
     int dist_y = step[1] * passo[1] / step_rev[1];
     int dist_z = step[2] * passo[2] / step_rev[2];
@@ -43,18 +55,20 @@ void Controlador::display() {
                dist_x, dist_y, dist_z, step[0], step[1]);
     tft.printf("\npassos_z=%.0f", step[2]);
 }
+
 void Controlador::eixo_refere() {
+    BusOut motores[3] = {motor_x, motor_y, motor_z};
     for (int i = 0; i < 3; i++) {
         pc.printf("referenciando eixo %d\r\n", i);
         bool finding_max = true;
         while (!ref_feito[i]) {
             if (emergencia) return;
-            bool first_read = endstop.read();
+            bool first_read = endstops.read();
             if (finding_max) {
                 if (emergencia) return;
                 aciona_motor(tempo, true, motores[i]);
                 wait_ms(3);
-                bool bateu = first_read && endstop.read();
+                bool bateu = first_read && endstops.read();
                 if (bateu) {
                     finding_max = false;
                     max_coord[i] = step[i];
@@ -65,7 +79,7 @@ void Controlador::eixo_refere() {
                 if (emergencia) return;
                 aciona_motor(tempo, false, motores[i]);
                 wait_ms(3);
-                bool bateu = first_read && endstop.read();
+                bool bateu = first_read && endstops.read();
                 if (bateu) {
                     ref_feito[i] = true;
                     min_coord[i] = step[i];
@@ -77,6 +91,7 @@ void Controlador::eixo_refere() {
     }
 }
 void Controlador::motor_joystick(int x, int y, bool z1, bool z2) {
+    BusOut motores[3] = {motor_x, motor_y, motor_z};
     if (emergencia) return;
     if (enable) {
         if (x > CXmax && step[0] < max_coord[0]) {
@@ -134,6 +149,7 @@ void Controlador::ponto_solta(int volume_desejado) {
 }
 
 void Controlador::ir_ponto(int destino[3]) {
+    BusOut motores[3] = {motor_x, motor_y, motor_z};
     // Levantando pipeta no maximo
     while (step[2] < max_coord[2]) {
         if (emergencia) return;

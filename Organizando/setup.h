@@ -5,12 +5,6 @@
 #include "mbed.h"
 #include <MCUFRIEND_kbv.h>
 
-#define DEBOUNCE(nm, ms)                                                                           \
-    if (true) {                                                                                    \
-        static uint32_t nm##Debounce = 0;                                                          \
-        if (getSysTicks() < nm##Debounce + (ms)) return;                                           \
-        nm##Debounce = getSysTicks();                                                              \
-    }
 //----------------------- Configuracao do display -----------------------
 MCUFRIEND_kbv tft;
 uint8_t Orientation = 1;
@@ -49,7 +43,7 @@ DigitalOut led_azul(PC_12);
 
 //----------------------- Botoes -----------------------
 InterruptIn bot_emerg(PC_13); // Botão de emergência
-InterruptIn endstops(PA_15);
+DigitalIn endstops(PA_15);
 DigitalIn enter(PB_15);
 DigitalIn z1(PA_13); // movimentacao em Z+
 DigitalIn z2(PC_15); // movimentacao em Z-
@@ -70,39 +64,39 @@ bool rotina_principal = false;  // 1 para rotina principal e 0 para outras rotin
 struct PontoSolta {
     int coord[3];
     int volume_desejado;
-    int volume_atual = 0;
+    int volume_atual;
 };
 
 struct Controlador {
-    bool ref_feito[3] = {false, false, false};
-    bool enable = true; // 0 -> emergencia; -> 1 funcionamento normal; 2-> fim do processo
-    volatile bool emergencia = false;
-    int soltas = 0;
+    bool ref_feito[3];
+    bool enable; // 0 -> emergencia; -> 1 funcionamento normal; 2-> fim do processo
+    volatile bool emergencia;
+    int soltas;
     int max_coord[3];
     int min_coord[3];
     // arrays
-    BusOut motores[3];
     PontoSolta solta[9];
-    int coleta[3] = {0, 0, 0};
-    int atual[3] = {0, 0, 0};
-    int distancia_coleta_atual[3] = {0, 0, 0};
-    int distancia_solta_coleta[3] = {0, 0, 0};
-    int step[3] = {0, 0, 0};
-    int step_rev[3] = {512, 512, 512}; // passo/rev motor x,y,z
-    int passo[3] = {3, 3, 10};         // passo x, y, z (FUSO)
-    int tempo = 3;
+    int coleta[3];
+    int atual[3];
+    int distancia_coleta_atual[3];
+    int distancia_solta_coleta[3];
+    int step[3];
+    int step_rev[3]; // passo/rev motor x,y,z
+    int passo[3];    // passo x, y, z (FUSO)
+    int tempo;
+    int destino[3];
 
     // --------------------- Rotina emergencia, display ---------------------------
-    void Controlador(BusOut, BusOut, BusOut);
+    void variavel_default(void);
     void emerg(void);
     void display(void);
     void eixo_refere(void);
     void motor_joystick(int, int, bool, bool);
     void ponto_coleta(void);
-    void ponto_solta(void);
-    void ir_ponto(int, int, int);
-    void soltar(void);
+    void ponto_solta(int);
+    void ir_ponto(int destino[3]);
     void coletar(void);
+    void soltar(void);
 };
 
 // ----------------------- declaracao de funcoes -----------------------

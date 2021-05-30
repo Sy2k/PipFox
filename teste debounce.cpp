@@ -29,15 +29,14 @@ uint8_t Orientation = 1;
 //----------------------- Monitor serial -----------------------
 Serial pc(USBTX, USBRX);
 
-//----------------------- Definição das portas dos motores
-//-----------------------
+//--------------- Definição das portas dos motores --------------
 BusOut motor_x(PC_4, PB_13, PB_14, PB_1);
 BusOut motor_y(PB_2, PB_11, PB_12, PA_11);
 BusOut motor_z(PA_12, PC_5, PC_6, PC_8);
 
 //----------------------- Botoes -----------------------
 InterruptIn botao_emergencia(PC_13); // BE
-InterruptIn endstops(PA_15);         // Endstop
+DigitalIn endstops(PA_15);           // Endstop
 DigitalIn enter(PB_15);              // Enter
 DigitalIn z1(PA_13);                 // movimentacao emZ+
 DigitalIn z2(PC_15);                 // movimentacao em Z-
