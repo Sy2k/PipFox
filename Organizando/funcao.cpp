@@ -37,6 +37,7 @@ void Controlador::variavel_default() {
     soltas = 0;
     tempo = 3;
 }
+
 void Controlador::emerg() {
     for (int i = 0; i < 3; i++) {
         step[i] = 0;
@@ -47,6 +48,9 @@ void Controlador::emerg() {
 }
 
 void Controlador::display() {
+    tft.setTextColor(GREEN);
+    tft.setTextSize(3);
+    tft.setCursor(0, 10); //  Orientação do texto X,Y
     int dist_x = step[0] * passo[0] / step_rev[0];
     int dist_y = step[1] * passo[1] / step_rev[1];
     int dist_z = step[2] * passo[2] / step_rev[2];
@@ -90,6 +94,7 @@ void Controlador::eixo_refere() {
         }
     }
 }
+
 void Controlador::motor_joystick(int x, int y, bool z1, bool z2) {
     BusOut motores[3] = {motor_x, motor_y, motor_z};
     if (emergencia) return;
@@ -188,3 +193,11 @@ void Controlador::soltar() {
         soltas++;
     }
 }
+
+// 127 - 135 Centro
+// >220 Xmax
+// >25 Xmin
+
+// 120 - 125 Centro Y
+// >210 Ymax
+// >25 Ymin

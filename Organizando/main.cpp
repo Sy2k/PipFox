@@ -10,10 +10,8 @@ void setup(void) {
     tft.begin();
     tft.setRotation(Orientation);
     tft.fillScreen(BLACK);
-    tft.setTextColor(GREEN);
-    tft.setTextSize(3);
-    tft.setCursor(0, 10); //  Orientação do texto X,Y
     // Motores desligados
+    control.variavel_default();
     desliga_motor(motores[0]);
     desliga_motor(motores[1]);
     desliga_motor(motores[2]);
