@@ -203,8 +203,6 @@ void be(){
     ref_x_feito=0;//zerar o referenciamento de todos os eixos
     ref_y_feito=0;
     ref_z_feito=0;
-    determinar_coleta=0;
-    printar=0;
     char solta[3]={0,0,0};
     char coleta[3]={0,0,0};
     
@@ -219,6 +217,8 @@ void sair_emer(){
         ref_x_feito=0;//zerar o referenciamento de todos os eixos
         ref_y_feito=0;
         ref_z_feito=0;
+        determinar_coleta=1;
+        printar=1;
         debounce_emer.reset();//resetar timer de reset
         pc.printf("\r saindo do estado de emergência\n");
         // lcd.printf("\r saindo do estado de emergência\n");
@@ -367,4 +367,4 @@ int main(){
     }
 }
 
-                            // int coleta[] = {[step_x, step_y, step_z,volume],[],[]};
+// int coleta[] = {[step_x, step_y, step_z,volume],[],[]};

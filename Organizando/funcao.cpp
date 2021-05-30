@@ -16,31 +16,65 @@ void print_lcd(int step_x, int step_y, int step_z)
 }
 
 // --------------------- Motores ---------------------------
-void motor(int tempo, int sentido,int motor){
-    if(sentido==0){
-        for(int i = 0; i <4;i++){
-            motor = 1 << i;       //verificar se o estado do sistema eh 0 ou 1
-            wait_ms(tempo);
+void aciona_mx(int tempo, int sentido, int on_off){
+    if(on_off==1){
+         if(sentido==0){
+            for(int i = 0; i <4;i++){
+                motor_x = 1 << i;       //verificar se o estado do sistema eh 0 ou 1
+                wait_ms(tempo);
+            }
+        }   
+        else if(sentido==1){
+            for(int i= 3;i>-1;i--){
+                motor_x = 1 << i;
+                wait_ms(tempo);
+            }
         }
     }
-    else if(sentido==1){
-        for(int i= 3;i>-1;i--){
-            motor = 1 << i;
-            wait_ms(tempo);
-        }
+    if(on_off==0){
+        motor_x = 0,0,0,0; 
     }
 }
 
-void Mx_off(){
-    motor_x = 0,0,0,0; 
+void aciona_my(int tempo, int sentido, int on_off){
+    if(on_off==1){
+         if(sentido==0){
+            for(int i = 0; i <4;i++){
+                motor_y = 1 << i;       //verificar se o estado do sistema eh 0 ou 1
+                wait_ms(tempo);
+            }
+        }   
+        else if(sentido==1){
+            for(int i= 3;i>-1;i--){
+                motor_y = 1 << i;
+                wait_ms(tempo);
+            }
+        }
+    }
+    if(on_off==0){
+        motor_y = 0,0,0,0; 
+    }
 }
 
-void My_off(){
-    motor_y = 0,0,0,0;
-} 
-void Mz_off(){
-    motor_z = 0,0,0,0;
-} 
+void aciona_mz(int tempo, int sentido, int on_off){
+    if(on_off==1){
+         if(sentido==0){
+            for(int i = 0; i <4;i++){
+                motor_z = 1 << i;       //verificar se o estado do sistema eh 0 ou 1
+                wait_ms(tempo);
+            }
+        }   
+        else if(sentido==1){
+            for(int i= 3;i>-1;i--){
+                motor_z = 1 << i;
+                wait_ms(tempo);
+            }
+        }
+    }
+    if(on_off==0){
+        motor_z = 0,0,0,0; 
+    }
+}
 
 // --------------------- ref ---------------------------
 void ref(){

@@ -13,16 +13,13 @@ void be(){
     //entrada no estado de emergencia e perdendo o referenciamento com botao de emergencia
 }
 
-InterruptIn endstop_x(PC_15);
-InterruptIn endstop_y(PB_15);
-//InterruptIn endstop_z(PA_15); //pc14
 InterruptIn endstop_z(PA_15); //pc14
 
 void sair_emer(){
-    if(debounce_emer.read_ms()>15){
-        debounce_emer.reset();
+    // if(debounce_emer.read_ms()>15){
+        // debounce_emer.reset();
         pc.printf("\r saindo do estado de emergencia\n");
-    }
+    // }
 }
 
 void Mx_ref(){
@@ -41,6 +38,6 @@ int main(){
     botao_emergencia.fall(&be);
     botao_emergencia.rise(&sair_emer);
     endstop_z.fall(&Mz_ref);
-    endstop_y.fall(&My_ref);
-    endstop_x.fall(&Mx_ref);
+    // endstop_y.fall(&My_ref);
+    // endstop_x.fall(&Mx_ref);
 }

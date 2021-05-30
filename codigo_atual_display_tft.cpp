@@ -359,7 +359,6 @@ void loop(void){
                         
                     }
                 }
-                
 
                 //calculo para as posições 
 
