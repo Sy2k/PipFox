@@ -1,20 +1,20 @@
 #include "setup.h"
 
-Controlador control{};
+Controlador control{{motor_x, motor_y, motor_z}};
 // control.emerg();
+
 void emergencia() { control.emerg(); }
 void setup(void) {
-    BusOut motores[3] = {motor_x, motor_y, motor_z};
     // SETUP - Display
-    tft.reset();
-    tft.begin();
-    tft.setRotation(Orientation);
-    tft.fillScreen(BLACK);
+    // tft.reset();
+    // tft.begin();
+    // tft.setRotation(Orientation);
+    // tft.fillScreen(BLACK);
     // Motores desligados
     control.variavel_default();
-    desliga_motor(motores[0]);
-    desliga_motor(motores[1]);
-    desliga_motor(motores[2]);
+    desliga_motor(*motores[0]);
+    desliga_motor(*motores[1]);
+    desliga_motor(*motores[2]);
     // Valores
     vx = 3;
     vy = 3;
