@@ -36,7 +36,7 @@ BusOut motor_z(PA_12, PC_5, PC_6, PC_8);
 
 //----------------------- Botoes -----------------------
 InterruptIn botao_emergencia(PC_13); // BE
-DigitalIn endstops(PA_15);           // Endstop
+InterruptIn endstops(PA_15);           // Endstop
 DigitalIn enter(PB_15);              // Enter
 DigitalIn z1(PA_13);                 // movimentacao emZ+
 DigitalIn z2(PC_15);                 // movimentacao em Z-
