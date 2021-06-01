@@ -6,16 +6,16 @@
 #include <MCUFRIEND_kbv.h>
 
 //----------------------- Configuracao do display -----------------------
-MCUFRIEND_kbv tft;
-uint8_t Orientation = 1;
-#define BLACK 0x0000
-#define BLUE 0x001F
-#define RED 0xF800
-#define GREEN 0x07E0
-#define CYAN 0x07FF
-#define MAGENTA 0xF81F
-#define YELLOW 0xFFE0
-#define WHITE 0xFFFF
+// MCUFRIEND_kbv tft;
+// uint8_t Orientation = 1;
+// #define BLACK 0x0000
+// #define BLUE 0x001F
+// #define RED 0xF800
+// #define GREEN 0x07E0
+// #define CYAN 0x07FF
+// #define MAGENTA 0xF81F
+// #define YELLOW 0xFFE0
+// #define WHITE 0xFFFF
 
 //   !!!CALIBRAR!!!
 #define Xmax 65000  // X Joystick
@@ -23,17 +23,18 @@ uint8_t Orientation = 1;
 #define CXmin 31000 // Centro Joystick X
 #define CXmax 33500 // Centro Joystick X
 #define CYmin 31000 // Centro Joystick Y
-#define CYmax 34500 // Centro Joystick Y
+#define CYmax 34500 // Centro Joysstick Y
 #define Ymax 65000  // Y Joystick
 #define Ymin 0      // Y Joystick
 
 //----------------------- Monitor serial -----------------------
-Serial pc(USBTX, USBRX);
+// Serial pc(USBTX, USBRX);
 
 //----------------------- Definição das portas dos motores -----------------------
 BusOut motor_x(PC_4, PB_13, PB_14, PB_1);
 BusOut motor_y(PB_2, PB_11, PB_12, PA_11);
 BusOut motor_z(PA_12, PC_5, PC_6, PC_8);
+BusOut *motores[3] = {&motor_x, &motor_y, &motor_z};
 
 //----------------------- Declaração das portas dos leds -----------------------
 DigitalOut led_vermelho(PD_2);
@@ -74,7 +75,7 @@ struct Controlador {
     int soltas;
     int max_coord[3];
     int min_coord[3];
-    // arrays
+    // ------ arrays ------
     PontoSolta solta[9];
     int coleta[3];
     int atual[3];
@@ -85,6 +86,7 @@ struct Controlador {
     int passo[3];    // passo x, y, z (FUSO)
     int tempo;
     int destino[3];
+    BusOut motores[3];
 
     // --------------------- Rotina emergencia, display ---------------------------
     void variavel_default(void);
