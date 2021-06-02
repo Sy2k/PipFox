@@ -53,7 +53,7 @@ InterruptIn bot_emerg(PC_13); // Botão de emergência
 DigitalIn endstops(PA_15);
 DigitalIn enter(PB_15);
 DigitalIn z1(PA_13); // movimentacao em Z+
-DigitalIn z2(PC_15); // movimentacao em Z-
+DigitalIn z2(PC_15); // movimentacao em Z- PA_3
 
 //----------------------- Declaração das portas do Joystick (x e y) -----------------------
 AnalogIn Ax(PC_3);
@@ -130,12 +130,19 @@ struct Controlador {
     }
 
     void emerg() {
+        pc.printf("emergencia %d\r\n");
         for (int i = 0; i < 3; i++) {
             step[i] = 0;
             ref_feito[i] = false;
         }
         enable = false;
         emergencia = true;
+    }
+
+    void sair_emerg() {
+        pc.printf("sair emergencia %d\r\n");
+        enable = true;
+        emergencia = false;
     }
 
     void display() {
@@ -190,7 +197,7 @@ struct Controlador {
         }
     }
 
-    void motor_joystick(int x, int y, bool z1, bool z2) {
+    void motor_joystick(int x, int y, DigitalIn &z11, DigitalIn &z22) {
         if (emergencia) return;
         bool bateu = endstops.read();
         if (enable && bateu) {
@@ -223,12 +230,16 @@ struct Controlador {
                 // pc.printf("Motor Y desligado\r\n");
                 desliga_motor(motores[1]);
             }
-
-            if (z1 && step[2] < max_coord[2]) {
+            bool estado = z11;
+            bool estado2 = z22;
+            wait_ms(5);
+            bool bateu_z1 = z11 && estado;
+            bool bateu_z2 = z22 && estado2;
+            if (bateu_z1 && step[2] < max_coord[2]) {
                 if (emergencia) return;
                 aciona_motor(tempo, true, motores[2]);
                 step[2] += 4;
-            } else if (z2 && step[2] > min_coord[2]) {
+            } else if (bateu_z2 && step[2] > min_coord[2]) {
                 if (emergencia) return;
                 aciona_motor(tempo, false, motores[2]);
                 step[2] -= 4;
@@ -296,17 +307,25 @@ struct Controlador {
 };
 
 Controlador Controlador1;
-
-void setup() { Controlador1.variavel_default(); }
+void fail_safe() { Controlador1.emerg(); }
+void sair_failsafe() { Controlador1.sair_emerg(); }
+void setup() {
+    Controlador1.variavel_default();
+    bot_emerg.mode(PullUp); // definição do botão de emergencia como PullUp
+    bot_emerg.fall(&fail_safe);
+    bot_emerg.rise(&sair_failsafe);
+}
 
 void loop() {
     x = Jorge.joyx();
     y = Jorge.joyy();
     if (Controlador1.enable) {
         pc.printf("%d %d %d\r\n", Controlador1.step[0], Controlador1.step[1], Controlador1.step[2]);
+        // feito o referencimaneto - movimentação do eixo x, y, z
         if (Controlador1.ref_feito[0] && Controlador1.ref_feito[1] && Controlador1.ref_feito[2]) {
             Controlador1.motor_joystick(x, y, z1, z2);
 
+            // Rotina de referenciamento
         } else {
             pc.printf("Dentro de referenciamento\r\n");
             Controlador1.eixo_refere();
