@@ -1,6 +1,6 @@
 #include "setup.h"
 
-Controlador control{{motor_x, motor_y, motor_z}};
+Controlador control{};
 // control.emerg();
 
 void emergencia() { control.emerg(); }
