@@ -1,5 +1,6 @@
 //----------------------- incluindo bibliotecas -----------------------
 #include "Arduino.h"
+#include "WiiNunchuck.h"
 #include "mbed.h"
 #include <MCUFRIEND_kbv.h>
 
@@ -16,14 +17,20 @@ uint8_t Orientation = 1;
 #define WHITE 0xFFFF
 
 //   !!!CALIBRAR!!!
-#define Xmax 65000  // X Joystick
-#define Xmin 0      // X Joystick
-#define CXmin 31000 // Centro Joystick X
-#define CXmax 33500 // Centro Joystick X
-#define CYmin 31000 // Centro Joystick Y
-#define CYmax 34500 // Centro Joystick Y
-#define Ymax 65000  // Y Joystick
-#define Ymin 0      // Y Joystick
+#define Xmax 220  // X Joystick
+#define Xmin 20   // X Joystick
+#define CXmin 125 // Centro Joystick X
+#define CXmax 135 // Centro Joystick X
+#define CYmin 120 // Centro Joystick Y
+#define CYmax 130 // Centro Joystick Y
+#define Ymax 210  // Y Joystick
+#define Ymin 20   // Y Joystick
+
+//-----------------------WII---------------------------
+
+#define p_sda PB_9
+#define p_scl PB_8
+WiiNunchuck Jorge(p_sda, p_scl);
 
 //----------------------- Monitor serial -----------------------
 Serial pc(USBTX, USBRX);
@@ -32,7 +39,8 @@ Serial pc(USBTX, USBRX);
 BusOut motor_x(PC_4, PB_13, PB_14, PB_1);
 BusOut motor_y(PB_2, PB_11, PB_12, PA_11);
 BusOut motor_z(PA_12, PC_5, PC_6, PC_8);
-BusOut motores[3] = {motor_x, motor_y, motor_z};
+BusOut motores[3] = {BusOut(PC_4, PB_13, PB_14, PB_1), BusOut(PB_2, PB_11, PB_12, PA_11),
+                     BusOut(PA_12, PC_5, PC_6, PC_8)};
 
 //----------------------- Declaração das portas dos leds -----------------------
 DigitalOut led_vermelho(PD_2);
@@ -153,24 +161,29 @@ struct Controlador {
                 if (finding_max) {
                     if (emergencia) return;
                     aciona_motor(tempo, true, motores[i]);
-                    wait_ms(3);
+                    step[i] += 4;
+                    wait_ms(3); // "Debounce" - first_read
                     bool bateu = first_read && endstops.read();
-                    if (bateu) {
+                    if (!bateu) {
                         finding_max = false;
-                        max_coord[i] = step[i - 2];
+                        max_coord[i] = step[i];
                         if (emergencia) return;
-                        aciona_motor(10, false, motores[i]);
+                        aciona_motor(3, false, motores[i]);
+                        wait(1);
                     }
+
                 } else {
                     if (emergencia) return;
                     aciona_motor(tempo, false, motores[i]);
+                    step[i] -= 4;
                     wait_ms(3);
                     bool bateu = first_read && endstops.read();
-                    if (bateu) {
+                    if (!bateu) {
                         ref_feito[i] = true;
-                        min_coord[i] = step[i - 2];
+                        min_coord[i] = step[i];
                         if (emergencia) return;
-                        aciona_motor(10, true, motores[i]);
+                        aciona_motor(3, true, motores[i]);
+                        wait(1);
                     }
                 }
             }
@@ -178,30 +191,36 @@ struct Controlador {
     }
 
     void motor_joystick(int x, int y, bool z1, bool z2) {
-        // BusOut motores[3] = {motor_x, motor_y, motor_z};
         if (emergencia) return;
-        if (enable) {
+        bool bateu = endstops.read();
+        if (enable && bateu) {
             if (x > CXmax && step[0] < max_coord[0]) {
                 if (emergencia) return;
+                pc.printf("Motor X sentido 1\r\n");
                 aciona_motor(tempo, true, motores[0]);
                 step[0] += 4;
             } else if (x < CXmin && step[0] > min_coord[0]) {
                 if (emergencia) return;
+                pc.printf("Motor X sentido 2\r\n");
                 aciona_motor(tempo, false, motores[0]);
                 step[0] -= 4;
             } else {
+                // pc.printf("Motor X desligado\r\n");
                 desliga_motor(motores[0]);
             }
 
             if (y > CYmax && step[1] < max_coord[1]) {
                 if (emergencia) return;
+                pc.printf("Motor Y sentido 1\r\n");
                 aciona_motor(tempo, true, motores[1]);
                 step[1] += 4;
             } else if (y < CYmin && step[1] > min_coord[1]) {
                 if (emergencia) return;
+                pc.printf("Motor Y sentido 2\r\n");
                 aciona_motor(tempo, false, motores[1]);
                 step[1] -= 4;
             } else {
+                // pc.printf("Motor Y desligado\r\n");
                 desliga_motor(motores[1]);
             }
 
@@ -236,7 +255,6 @@ struct Controlador {
     }
 
     void ir_ponto(int destino[3]) {
-        // BusOut motores[3] = {motor_x, motor_y, motor_z};
         // Levantando pipeta no maximo
         while (step[2] < max_coord[2]) {
             if (emergencia) return;
@@ -282,7 +300,16 @@ Controlador Controlador1;
 void setup() { Controlador1.variavel_default(); }
 
 void loop() {
-    x = Ax.read_u16(); // ou Ax.read*1000()
-    y = Ay.read_u16(); // ou Ay.read*1000()
-    Controlador1.motor_joystick(x, y, z1, z2);
+    x = Jorge.joyx();
+    y = Jorge.joyy();
+    if (Controlador1.enable) {
+        pc.printf("%d %d %d\r\n", Controlador1.step[0], Controlador1.step[1], Controlador1.step[2]);
+        if (Controlador1.ref_feito[0] && Controlador1.ref_feito[1] && Controlador1.ref_feito[2]) {
+            Controlador1.motor_joystick(x, y, z1, z2);
+
+        } else {
+            pc.printf("Dentro de referenciamento\r\n");
+            Controlador1.eixo_refere();
+        }
+    }
 }
