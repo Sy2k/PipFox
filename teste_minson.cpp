@@ -98,7 +98,7 @@ bool print_valor_pos = 1;
 bool tipo_de_movimento = 0; // 0 atual para coleta ou 1 de pega para solta
 bool rotina_principal = 0;  // 1 para rotina principal e 0 para outras rotinas
 
-void print_lcd(int step_x, int step_y, int step_z) {
+void display(int step_x, int step_y, int step_z) {
     tft.setTextColor(GREEN);
     tft.setTextSize(3);
     tft.setCursor(0, 10);                             //  Orientação do texto X,Y
