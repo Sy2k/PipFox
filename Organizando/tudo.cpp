@@ -1,5 +1,9 @@
+/*                                                      *\
+|*                        SETUP                         *|
+\*                                                      */
 //----------------------- incluindo bibliotecas -----------------------
 #include "Arduino.h"
+#include "TouchScreen_kbv_mbed.h"
 #include "WiiNunchuck.h"
 #include "mbed.h"
 #include <MCUFRIEND_kbv.h>
@@ -15,8 +19,10 @@ uint8_t Orientation = 1;
 #define MAGENTA 0xF81F
 #define YELLOW 0xFFE0
 #define WHITE 0xFFFF
+#define MINPRESSURE 10
+#define MAXPRESSURE 1000
 
-//----------------------- WII Joystick  -----------------------
+//---------------- WII Joystick --------------
 #define Xmax 220  // X Joystick
 #define Xmin 20   // X Joystick
 #define CXmin 125 // Centro Joystick X
@@ -45,12 +51,12 @@ DigitalOut led_verde(PC_11);
 DigitalOut led_amarelo(PC_10);
 DigitalOut led_azul(PC_12);
 
-//----------------------- Botoes -----------------------
-InterruptIn bot_emerg(PC_13); // Botão de emergência
+// ---- Botões (Emergência, enter, endstop, mov z+, mov z-)  ---
+InterruptIn bot_emerg(PC_13);
 DigitalIn endstops(PA_15);
 DigitalIn enter(PB_15);
-DigitalIn z1(PA_13); // movimentacao em Z+
-DigitalIn z2(PB_7); // movimentacao em Z- PA_3
+DigitalIn z1(PA_13);
+DigitalIn z2(PB_7);
 
 //----------------------- Declaração das portas do Joystick (x e y) -----------------------
 AnalogIn Ax(PC_3);
@@ -65,9 +71,36 @@ bool print_valor_pos = true;
 bool tipo_de_movimento = false; // 0 atual para coleta ou 1 de pega para solta
 bool rotina_principal = false;  // 1 para rotina principal e 0 para outras rotinas
 
-/*                                  *\
-|* Função para acionamento do motor *|
-\*                                  */
+/*                                                      *\
+|*   Configurações do display - Setup  Funções  Gerais  *|
+\*                                                      */
+DigitalIn bot_selec(PC_6);  // botão select
+DigitalIn bot_selec2(PC_8); // botão select2
+bool mais = false;
+bool menos = false;
+int vol = 0;
+int k = 0;
+
+int pos_x[10];
+int pos_y[10];
+int pos_z[10];
+int vol_ml[9];
+
+// ---- Função map -------
+long map(long x, long in_min, long in_max, long out_min, long out_max) {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+//----- contadores e Status ---
+int h = 0;
+int etapa_atual = 0;
+int pos;
+int status = 0;
+
+/*                                                      *\
+|*                   Funções gerais                     *|
+\*                                                      */
+//------------ Função para acionamento do motor  e desligar o motor --------------------
 void aciona_motor(int tempo, bool sentido, BusOut &motor) {
     if (sentido) {
         for (int i = 0; i < 4; i++) {
@@ -97,6 +130,7 @@ struct Controlador {
     int soltas;
     int max_coord[3];
     int min_coord[3];
+
     // ------ arrays ------
     PontoSolta solta[9];
     int coleta[3];
@@ -128,15 +162,11 @@ struct Controlador {
         emergencia = false;
         soltas = 0;
         tempo = 3;
-        totalpontos=0;
+        totalpontos = 0;
     }
     // --------------------- Rotina de emergência ---------------------------
     void emerg() {
-<<<<<<< HEAD
-        pc.printf("emergencia\r\n");
-=======
         pc.printf("emergencia \r\n");
->>>>>>> f09f909ad72d42c5d4e38b585570578635b6d2f1
         for (int i = 0; i < 3; i++) {
             step[i] = 0;
             ref_feito[i] = false;
@@ -146,11 +176,7 @@ struct Controlador {
     }
     // --------------------- Saida de emergência ---------------------------
     void sair_emerg() {
-<<<<<<< HEAD
-        pc.printf("sair emergencia\r\n");
-=======
         pc.printf("sair emergencia \r\n");
->>>>>>> f09f909ad72d42c5d4e38b585570578635b6d2f1
         enable = true;
         emergencia = false;
     }
@@ -248,9 +274,9 @@ struct Controlador {
             bool bateu_z1 = z11 && estado;
             bool bateu_z2 = z22 && estado2;
             pc.printf("bateu_z2 %d\r\n", bateu_z2);
-            
-            pc.printf("max_coord %d %d %d \r\n", max_coord[0], max_coord[1],max_coord[2]);
-            pc.printf("min_coord %d %d %d \r\n", min_coord[0], min_coord[1],min_coord[2]);
+
+            pc.printf("max_coord %d %d %d \r\n", max_coord[0], max_coord[1], max_coord[2]);
+            pc.printf("min_coord %d %d %d \r\n", min_coord[0], min_coord[1], min_coord[2]);
 
             if (!bateu_z1 && step[2] < max_coord[2]) {
                 if (emergencia) return;
@@ -281,8 +307,8 @@ struct Controlador {
         solta[soltas].coord[2] = step[2];
         solta[soltas].volume_desejado = volume_desejado;
         totalpontos++;
-        if(totalpontos>=9){
-            totalpontos=0;
+        if (totalpontos >= 9) {
+            totalpontos = 0;
         }
     }
 
@@ -294,12 +320,12 @@ struct Controlador {
         }
         // Arrumando eixo x e y
         for (int i = 0; i < 2; i++) {
-            // indo com eixo x e y para SAH
+            // Indo com eixo x e y para SAH (Sentido antihorario)
             while (step[i] < destino[i]) {
                 if (emergencia) return;
                 aciona_motor(tempo, false, motores[i]);
             }
-            // indo com eixo x e y para SH
+            // Indo com eixo x e y para SH (Sentido horario)
             while (step[i] > destino[i]) {
                 if (emergencia) return;
                 aciona_motor(tempo, true, motores[i]);
@@ -323,18 +349,26 @@ struct Controlador {
         solta[soltas].volume_atual++;
         if (solta[soltas].volume_atual == solta[soltas].volume_desejado) {
             soltas++;
-            if(soltas==totalpontos) {//quando se chega no final se zera o total de pontos
-                totalpontos=0;
-                soltas=0;
+            if (soltas == totalpontos) { // quando se chega no final se zera o total de pontos
+                totalpontos = 0;
+                soltas = 0;
             }
         }
     }
 };
 
+/*                                                      *\
+|*                 Programa principal                   *|
+\*                                                      */
 Controlador Controlador1;
 void fail_safe() { Controlador1.emerg(); }
 void sair_failsafe() { Controlador1.sair_emerg(); }
 void setup() {
+    tft.reset();
+    tft.begin();
+    tft.setRotation(Orientation);
+    tft.fillScreen(BLACK); // Fundo do Display
+    wait(0.75);
     Controlador1.variavel_default();
     bot_emerg.mode(PullUp); // definição do botão de emergencia como PullUp
     bot_emerg.fall(&fail_safe);
@@ -344,8 +378,10 @@ void setup() {
 void loop() {
     x = Jorge.joyx();
     y = Jorge.joyy();
+
     if (Controlador1.enable) {
-        pc.printf("step:%d %d %d\r\n", Controlador1.step[0], Controlador1.step[1], Controlador1.step[2]);
+        pc.printf("step:%d %d %d\r\n", Controlador1.step[0], Controlador1.step[1],
+                  Controlador1.step[2]);
         // feito o referencimaneto - movimentação do eixo x, y, z
         if (Controlador1.ref_feito[0] && Controlador1.ref_feito[1] && Controlador1.ref_feito[2]) {
             Controlador1.motor_joystick(x, y, z1, z2);
@@ -354,6 +390,9 @@ void loop() {
         } else {
             pc.printf("Dentro de referenciamento\r\n");
             Controlador1.eixo_refere();
+        }
+
+        if () {
         }
     }
 }

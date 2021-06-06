@@ -1,10 +1,18 @@
+/*                                                      *\
+|*                        SETUP                         *|
+\*                                                      */
 //----------------------- incluindo bibliotecas -----------------------
 #include "Arduino.h"
+#include "TouchScreen_kbv_mbed.h"
 #include "WiiNunchuck.h"
 #include "mbed.h"
 #include <MCUFRIEND_kbv.h>
-#include "TouchScreen_kbv_mbed.h"
-//----------------------- Configuracao do display -----------------------
+//----------------------- Monitor serial -----------------------
+Serial pc(USBTX, USBRX);
+
+/*                                       *\
+|*   Configurações do display - Setup    *|
+\*                                       */
 MCUFRIEND_kbv tft;
 uint8_t Orientation = 1;
 #define BLACK 0x0000
@@ -15,23 +23,12 @@ uint8_t Orientation = 1;
 #define MAGENTA 0xF81F
 #define YELLOW 0xFFE0
 #define WHITE 0xFFFF
-
-//   !!!CALIBRAR!!!
-#define Xmax 220  // X Joystick
-#define Xmin 20   // X Joystick
-#define CXmin 125 // Centro Joystick X
-#define CXmax 135 // Centro Joystick X
-#define CYmin 120 // Centro Joystick Y
-#define CYmax 130 // Centro Joystick Y
-#define Ymax 210  // Y Joystick
-#define Ymin 20   // Y Joystick
-
 #define MINPRESSURE 10
 #define MAXPRESSURE 1000
 
 bool mais = 0;
 bool menos = 0;
-int vol  = 0;
+int vol = 0;
 int num_pontos_solta;
 
 int pos_x[10];
@@ -39,30 +36,18 @@ int pos_y[10];
 int pos_z[10];
 int vol_ml[9];
 
-//**********Configurações Touch***********//
-const int TS_LEFT=121,TS_RT=922,TS_TOP=82,TS_BOT=890;
-const PinName XP = D8, YP = A3, XM = A2, YM = D9;   //next common configuration
+//--------------- Configurações Touch ---------------
+const int TS_LEFT = 121, TS_RT = 922, TS_TOP = 82, TS_BOT = 890;
+const PinName XP = D8, YP = A3, XM = A2, YM = D9; // next common configuration
 DigitalInOut YPout(YP);
 DigitalInOut XMout(XM);
 
-long map(long x, long in_min, long in_max, long out_min, long out_max)
-{
+long map(long x, long in_min, long in_max, long out_min, long out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 TouchScreen_kbv ts = TouchScreen_kbv(XP, YP, XM, YM, 300);
 TSPoint_kbv tp;
-
-//****************************************************************************//
-
-//-----------------------WII---------------------------
-
-#define p_sda PB_9
-#define p_scl PB_8
-WiiNunchuck Jorge(p_sda, p_scl);
-
-//----------------------- Monitor serial -----------------------
-Serial pc(USBTX, USBRX);
 
 //----------------------- Definição das portas dos motores -----------------------
 BusOut motor_x(PC_4, PB_13, PB_14, PB_1);
@@ -71,37 +56,329 @@ BusOut motor_z(PA_12, PC_5, PC_6, PC_8);
 BusOut motores[3] = {BusOut(PC_4, PB_13, PB_14, PB_1), BusOut(PB_2, PB_11, PB_12, PA_11),
                      BusOut(PA_12, PC_5, PC_6, PC_8)};
 
+//-----------------------WII---------------------------
+#define p_sda PB_9 // SDA
+#define p_scl PB_8 // SCL
+#define Xmax 220   // X Joystick
+#define Xmin 20    // X Joystick
+#define CXmin 125  // Centro Joystick X
+#define CXmax 135  // Centro Joystick X
+#define CYmin 120  // Centro Joystick Y
+#define CYmax 130  // Centro Joystick Y
+#define Ymax 210   // Y Joystick
+#define Ymin 20    // Y Joystick
+WiiNunchuck Jorge(p_sda, p_scl);
+
 //----------------------- Declaração das portas dos leds -----------------------
 DigitalOut led_vermelho(PD_2);
 DigitalOut led_verde(PC_11);
 DigitalOut led_amarelo(PC_10);
 DigitalOut led_azul(PC_12);
 
-//----------------------- Botoes -----------------------
-InterruptIn bot_emerg(PC_13); // Botão de emergência
+//----------------------- Botoes - Emergênica, endstops, enter, movimentação Z+ e Z-
+//-----------------------
+InterruptIn bot_emerg(PC_13);
 DigitalIn endstops(PA_15);
 DigitalIn enter(PB_15);
-DigitalIn z1(PA_13); // movimentacao em Z+
-DigitalIn z2(PB_7); // movimentacao em Z- PA_3
+DigitalIn z1(PA_13);
+DigitalIn z2(PB_7);
 
-//----------------------- Declaração das portas do Joystick (x e y) -----------------------
+//----------- Declaração das portas do Joystick (x e y) ----------
 AnalogIn Ax(PC_3);
 AnalogIn Ay(PC_2);
 
-// ----------------------- variaveis relacionadas ao motor e o joystick -----------------------
+// ------------ variaveis relacionadas ao motor e o joystick -------------
 int x, y, vx, vy, vz;
 
-//-------------------------- variaveis relacionadas a coisas do display---------------
+//------------ variaveis relacionadas a coisas do display---------
 int h = 0;
 int etapa_atual = 0;
 int pos;
 int status = 0;
-//bool welcome_ = true;
-//----------------------- variaveis variaveis responsaveis pela logica -----------------------
+// bool welcome_ = true;
 
+//---------- variaveis variaveis responsaveis pela logica ---------
 bool tipo_de_movimento = false; // 0 atual para coleta ou 1 de pega para solta
 bool rotina_principal = false;  // 1 para rotina principal e 0 para outras rotinas
 
+/*                           *\
+|*    Funções do display     *|
+\*                           */
+void tela_comecar_ref() {
+    tft.setTextColor(GREEN);
+    tft.setTextSize(3);
+    tft.setCursor(25, 80);
+    tft.println("Start Reference");
+    //   if (enter==0){
+    //       estado_atual=estado_atual+1;
+    //       tft.fillScreen(BLACK);
+    //       }
+}
+
+void tela_ref_em_anda() {
+    tft.setTextColor(GREEN);
+    tft.setTextSize(3);
+    tft.setCursor(3, 125);
+    tft.println("Referencing...");
+}
+
+void tela_ref_finalizado() {
+    // tft.fillScreen(BLACK);
+    tft.setTextColor(GREEN);
+    tft.setTextSize(3);
+    tft.setCursor(3, 55);
+    tft.println("Reference Defined");
+    wait(5);
+    // estado_atual=estado_atual+1;
+}
+
+void apaga_tela() { tft.fillScreen(BLACK); }
+
+void tela_def_coleta() {
+    tft.setTextColor(GREEN);
+    tft.setTextSize(4);    // Tamanho do Texto no Display
+    tft.setCursor(80, 40); //  Orientação do texto X,Y
+    tft.println("Define");
+
+    tft.setTextSize(4);
+    tft.setCursor(80, 90); //  Orientação do texto X,Y
+    tft.println("Collect");
+
+    tft.setTextSize(4);     // Tamanho do Texto no Display
+    tft.setCursor(80, 140); //  Orientação do texto X,Y
+    tft.println("Point");
+    // if (enter ==0){
+    //     etapa_atual = 1;
+    //     tft.fillScreen(BLACK);
+    //     wait(0.3);
+    //     }
+}
+
+void tela_def_solta() {
+    tft.setTextColor(GREEN);
+    tft.setTextSize(4);    // Tamanho do Texto no Display
+    tft.setCursor(80, 40); //  Orientação do texto X,Y
+    tft.println("Define");
+
+    tft.setTextSize(4);
+    tft.setCursor(80, 90); //  Orientação do texto X,Y
+    tft.println("Solta");
+
+    tft.setTextSize(4);     // Tamanho do Texto no Display
+    tft.setCursor(80, 140); //  Orientação do texto X,Y
+    tft.println("Point");
+    // if (enter ==0){
+    //     etapa_atual = 1;
+    //     tft.fillScreen(BLACK);
+    //     wait(0.3);
+    //     }
+}
+
+void tela_mostrar_ponto_coleta_def(int x, int y, int z) {
+    // Título da sessão
+    tft.setTextColor(BLUE);
+    tft.setTextSize(4);   // Tamanho do Texto no Display
+    tft.setCursor(3, 10); //  Orientação do texto X,Y
+    tft.println("Ponto de coleta");
+
+    tft.setTextColor(WHITE);
+    tft.setTextSize(3); // Tamanho do Texto no Display
+
+    tft.setCursor(10, 70);
+    tft.println("Posição X =");
+    tft.setCursor(240, 70);
+    tft.println(x);
+
+    tft.setCursor(10, 120);
+    tft.println("Posição Y =");
+    tft.setCursor(240, 120);
+    tft.println(y);
+
+    tft.setCursor(10, 170);
+    tft.println("Posição Z =");
+    tft.setCursor(240, 170);
+    tft.println(z);
+}
+
+void tela_mostrar_ponto_solta_def(int x, int y, int z) {
+    // Título da sessão
+    tft.setTextColor(BLUE);
+    tft.setTextSize(4);   // Tamanho do Texto no Display
+    tft.setCursor(3, 10); //  Orientação do texto X,Y
+    tft.println("Ponto de solta");
+
+    tft.setTextColor(WHITE);
+    tft.setTextSize(3); // Tamanho do Texto no Display
+
+    tft.setCursor(10, 70);
+    tft.println("Posição X =");
+    tft.setCursor(240, 70);
+    tft.println(x);
+
+    tft.setCursor(10, 120);
+    tft.println("Posição Y =");
+    tft.setCursor(240, 120);
+    tft.println(y);
+
+    tft.setCursor(10, 170);
+    tft.println("Posição Z =");
+    tft.setCursor(240, 170);
+    tft.println(z);
+}
+
+void tela_recipientes() {
+    // tft.drawRoundRect(15, 25, 134, 65, 5, WHITE);
+    tft.setTextColor(GREEN);
+    tft.setTextSize(15);
+    tft.setCursor(45, 115);
+    tft.println("-");
+
+    // tft.drawRoundRect(15, 115, 134, 100, 5, WHITE);
+    tft.setTextColor(GREEN);
+    tft.setTextSize(15);
+    tft.setCursor(45, 5);
+    tft.println("+");
+
+    tft.setTextColor(GREEN);
+    tft.setTextSize(2);
+    tft.setCursor(160, 50);
+    tft.println("Recipientes");
+    tft.setCursor(160, 80);
+}
+
+void funcao_touch_det_num_recip(void) {
+    bool definindo = true;
+    tft.setTextSize(2);
+
+    tft.setTextColor(MAGENTA, BLUE);
+    num_pontos_solta = 0;
+
+    while (definindo) {
+        tp = ts.getPoint();
+        YPout.output();
+        XMout.output();
+
+        if (tp.z < MINPRESSURE && tp.z > MAXPRESSURE) {
+            tp.x = tft.width() - (map(tp.x, TS_RT, TS_LEFT, tft.width(), 0));
+            tp.y = tft.height() - (map(tp.y, TS_BOT, TS_TOP, tft.height(), 0));
+        }
+        if (tp.x >= 620 && tp.x <= 805 && tp.y >= 160) {
+            if (mais == 0) {
+                num_pontos_solta = num_pontos_solta++;
+                if (num_pontos_solta > 9) {
+                    num_pontos_solta = 9;
+                }
+                tft.setTextColor(GREEN);
+                tft.setTextSize(2);
+                tft.setCursor(160, 80);
+                tft.fillRoundRect(205, 80, 154, 50, 5, BLACK);
+                tft.printf("NUM = %d ", num_pontos_solta);
+                wait(0.5);
+            }
+        }
+
+        if (tp.x >= 130 && tp.x <= 500 && tp.y >= 120 && tp.y <= 400) {
+
+            if (menos == 0) {
+
+                num_pontos_solta = num_pontos_solta--;
+                if (num_pontos_solta < 0) {
+                    num_pontos_solta = 0;
+                }
+
+                tft.setTextColor(GREEN);
+                tft.setTextSize(2);
+                tft.setCursor(160, 80);
+                tft.fillRoundRect(205, 80, 154, 50, 5, BLACK);
+                tft.printf("NUM = %d ", num_pontos_solta);
+                wait(0.5);
+            }
+        }
+        bool estado_enter = enter;
+        wait(0.1);
+        bool enter_deb = enter && estado_enter;
+
+        if (!estado_enter) {
+            definindo = false;
+        }
+    }
+}
+
+void tela_ref_det_vol(void) {
+    int status = 0;
+
+    // tft.drawRoundRect(15, 25, 134, 65, 5, WHITE);
+    tft.setTextColor(GREEN);
+    tft.setTextSize(15);
+    tft.setCursor(45, 115);
+    tft.println("-");
+
+    // tft.drawRoundRect(15, 115, 134, 100, 5, WHITE);
+    tft.setTextColor(GREEN);
+    tft.setTextSize(15);
+    tft.setCursor(45, 5);
+    tft.println("+");
+
+    tft.setTextColor(GREEN);
+    tft.setTextSize(2);
+    tft.setCursor(160, 50);
+    tft.println("Volume (ML)");
+    tft.setCursor(160, 80);
+
+    tft.setTextSize(2);
+    tft.setTextColor(MAGENTA, BLUE);
+
+    while (status == 0) {
+        tp = ts.getPoint();
+        YPout.output();
+        XMout.output();
+
+        if (tp.z < MINPRESSURE && tp.z > MAXPRESSURE)
+
+            tp.x = tft.width() - (map(tp.x, TS_RT, TS_LEFT, tft.width(), 0));
+        tp.y = tft.height() - (map(tp.y, TS_BOT, TS_TOP, tft.height(), 0));
+
+        if (tp.x >= 620 && tp.x <= 805 && tp.y >= 160) {
+
+            if (mais == 0) {
+                vol = vol++;
+
+                tft.setTextColor(GREEN);
+                tft.setTextSize(2);
+                tft.setCursor(160, 80);
+                tft.fillRoundRect(205, 80, 154, 50, 5, BLACK);
+                tft.printf("ML = %d ", vol);
+                wait(0.5);
+            }
+        }
+
+        if (tp.x >= 130 && tp.x <= 500 && tp.y >= 120 && tp.y <= 400) {
+
+            if (menos == 0) {
+                vol = vol--;
+                if (vol <= 0) {
+                    vol = 0;
+                }
+                tft.setTextColor(GREEN);
+                tft.setTextSize(2);
+                tft.setCursor(160, 80);
+                tft.fillRoundRect(205, 80, 154, 50, 5, BLACK);
+                tft.printf("ML = %d ", vol);
+                wait(0.5);
+            }
+        }
+        bool estado_enter = enter;
+        wait(0.1);
+        bool enter_deb = enter && estado_enter;
+        if (!enter_deb) {
+            status = 1;
+        }
+    }
+}
+/*                                     *\
+|*    Funções do gerais e Estrutura     *|
+\*                                     */
+// ---------- Motores ----------
 void aciona_motor(int tempo, bool sentido, BusOut &motor) {
     if (sentido) {
         for (int i = 0; i < 4; i++) {
@@ -116,298 +393,6 @@ void aciona_motor(int tempo, bool sentido, BusOut &motor) {
     }
 }
 
-//***********************Funções da tela touch********************************//
-void tela_comecar_ref(){
-   tft.setTextColor(GREEN);
-   tft.setTextSize(3);
-   tft.setCursor(25, 80);
-   tft.println("Start Reference");
-//   if (enter==0){
-//       estado_atual=estado_atual+1;
-//       tft.fillScreen(BLACK);
-//       }
-}
-
-    void tela_ref_em_anda(){          
-            tft.setTextColor(GREEN);
-            tft.setTextSize(3);
-            tft.setCursor(3, 125);
-            tft.println("Referencing...");
-            }
-    void tela_ref_finalizado(){
-            //tft.fillScreen(BLACK);
-            tft.setTextColor(GREEN);
-            tft.setTextSize(3);
-            tft.setCursor(3, 55);
-            tft.println("Reference Defined");
-            wait(5);
-            //estado_atual=estado_atual+1;
-    }
-
-void apaga_tela(){
-            tft.fillScreen(BLACK);
-            }
-
-void tela_def_coleta()
-{
-    tft.setTextColor(GREEN);
-    tft.setTextSize(4);    // Tamanho do Texto no Display
-    tft.setCursor(80, 40); //  Orientação do texto X,Y
-    tft.println("Define");
-    
-    tft.setTextSize(4);  
-    tft.setCursor(80, 90); //  Orientação do texto X,Y
-    tft.println("Collect");
-    
-    tft.setTextSize(4);    // Tamanho do Texto no Display
-    tft.setCursor(80, 140); //  Orientação do texto X,Y
-    tft.println("Point");
-    // if (enter ==0){
-    //     etapa_atual = 1;
-    //     tft.fillScreen(BLACK);
-    //     wait(0.3);
-    //     }
-}
-
-void tela_def_solta()
-{
-    tft.setTextColor(GREEN);
-    tft.setTextSize(4);    // Tamanho do Texto no Display
-    tft.setCursor(80, 40); //  Orientação do texto X,Y
-    tft.println("Define");
-    
-    tft.setTextSize(4);  
-    tft.setCursor(80, 90); //  Orientação do texto X,Y
-    tft.println("Solta");
-    
-    tft.setTextSize(4);    // Tamanho do Texto no Display
-    tft.setCursor(80, 140); //  Orientação do texto X,Y
-    tft.println("Point");
-    // if (enter ==0){
-    //     etapa_atual = 1;
-    //     tft.fillScreen(BLACK);
-    //     wait(0.3);
-    //     }
-}
-
-void tela_mostrar_ponto_coleta_def(int x, int y, int z)
-{
-    //Título da sessão
-    tft.setTextColor(BLUE);
-    tft.setTextSize(4);    // Tamanho do Texto no Display
-    tft.setCursor(3, 10); //  Orientação do texto X,Y
-    tft.println("Ponto de coleta");
-    
-
-    tft.setTextColor(WHITE);
-    tft.setTextSize(3);    // Tamanho do Texto no Display
-
-    tft.setCursor(10, 70);
-    tft.println("Posição X =");
-    tft.setCursor(240, 70);
-    tft.println(x);
-
-    tft.setCursor(10, 120);
-    tft.println("Posição Y =");
-    tft.setCursor(240, 120);
-    tft.println(y);
-
-    tft.setCursor(10, 170);
-    tft.println("Posição Z =");
-    tft.setCursor(240, 170);
-    tft.println(z);
-    }
-
-
-void tela_mostrar_ponto_solta_def(int x, int y, int z)
-{
-    //Título da sessão
-    tft.setTextColor(BLUE);
-    tft.setTextSize(4);    // Tamanho do Texto no Display
-    tft.setCursor(3, 10); //  Orientação do texto X,Y
-    tft.println("Ponto de solta");
-    
-
-    tft.setTextColor(WHITE);
-    tft.setTextSize(3);    // Tamanho do Texto no Display
-
-    tft.setCursor(10, 70);
-    tft.println("Posição X =");
-    tft.setCursor(240, 70);
-    tft.println(x);
-
-    tft.setCursor(10, 120);
-    tft.println("Posição Y =");
-    tft.setCursor(240, 120);
-    tft.println(y);
-
-    tft.setCursor(10, 170);
-    tft.println("Posição Z =");
-    tft.setCursor(240, 170);
-    tft.println(z);
-}
-
-void tela_recipientes(){
-    //tft.drawRoundRect(15, 25, 134, 65, 5, WHITE);
-    tft.setTextColor(GREEN);
-    tft.setTextSize(15);
-    tft.setCursor(45,115);
-    tft.println("-");
-
-    //tft.drawRoundRect(15, 115, 134, 100, 5, WHITE);
-    tft.setTextColor(GREEN);
-    tft.setTextSize(15);
-    tft.setCursor(45,5);
-    tft.println("+");
-
-    tft.setTextColor(GREEN);
-    tft.setTextSize(2);
-    tft.setCursor(160,50);
-    tft.println("Recipientes");
-    tft.setCursor(160,80);
-}
-
-void funcao_touch_det_num_recip(void)
-{
-    bool definindo=true;
-    tft.setTextSize(2);
-
-    tft.setTextColor(MAGENTA,BLUE);
-    num_pontos_solta=0;
-    
-    while (definindo) {
-        tp = ts.getPoint();
-        YPout.output();
-        XMout.output();
-
-        if (tp.z < MINPRESSURE && tp.z > MAXPRESSURE){
-            tp.x = tft.width() - (map(tp.x, TS_RT, TS_LEFT, tft.width(), 0));
-            tp.y = tft.height() - (map(tp.y, TS_BOT, TS_TOP, tft.height(), 0));
-        }
-        if (tp.x>=620&&tp.x<=805&&tp.y>=160) {
-            if  (mais ==0) {
-                num_pontos_solta=  num_pontos_solta ++;
-                if (num_pontos_solta>9){
-                    num_pontos_solta=9;
-                    }
-                tft.setTextColor(GREEN);
-                tft.setTextSize(2);
-                tft.setCursor(160, 80);
-                tft.fillRoundRect(205, 80, 154, 50, 5, BLACK);
-                tft.printf("NUM = %d ",num_pontos_solta);
-                wait(0.5);
-            }
-        }
-
-        if (tp.x>=130&&tp.x<=500&&tp.y>=120&&tp.y<=400) {
-
-            if(menos==0) {
-
-                num_pontos_solta =num_pontos_solta--;
-                if (num_pontos_solta<0){
-                    num_pontos_solta=0;
-                    }
-
-                tft.setTextColor(GREEN);
-                tft.setTextSize(2);
-                tft.setCursor(160, 80);
-                tft.fillRoundRect(205, 80, 154, 50, 5, BLACK);
-                tft.printf("NUM = %d ",num_pontos_solta);
-                wait(0.5);
-            }
-        }
-                bool estado_enter = enter;
-                wait(0.1);
-                bool enter_deb = enter && estado_enter;
-                
-                if(!estado_enter){
-                    definindo=false;
-                }
-    }
-
-}
-
-void tela_ref_det_vol(void)
-{
-    int status = 0;
-
-    //tft.drawRoundRect(15, 25, 134, 65, 5, WHITE);
-    tft.setTextColor(GREEN);
-    tft.setTextSize(15);
-    tft.setCursor(45,115);
-    tft.println("-");
-
-    //tft.drawRoundRect(15, 115, 134, 100, 5, WHITE);
-    tft.setTextColor(GREEN);
-    tft.setTextSize(15);
-    tft.setCursor(45,5);
-    tft.println("+");
-
-    tft.setTextColor(GREEN);
-    tft.setTextSize(2);
-    tft.setCursor(160,50);
-    tft.println("Volume (ML)");
-    tft.setCursor(160,80);
-
-    tft.setTextSize(2);
-    tft.setTextColor(MAGENTA,BLUE);
-
-    while (status == 0) 
-    {
-        tp = ts.getPoint();
-        YPout.output();
-        XMout.output();
-
-        if (tp.z < MINPRESSURE && tp.z > MAXPRESSURE)
-        
-        tp.x = tft.width() - (map(tp.x, TS_RT, TS_LEFT, tft.width(), 0));
-        tp.y = tft.height() - (map(tp.y, TS_BOT, TS_TOP, tft.height(), 0));
-        
-
-        if (tp.x>=620&&tp.x<=805&&tp.y>=160) 
-        {
-
-            if  (mais ==0) 
-            {
-                vol=  vol ++;
-
-                tft.setTextColor(GREEN);
-                tft.setTextSize(2);
-                tft.setCursor(160, 80);
-                tft.fillRoundRect(205, 80, 154, 50, 5, BLACK);
-                tft.printf("ML = %d ",vol);
-                wait(0.5);
-            }
-        }
-
-        if (tp.x>=130&&tp.x<=500&&tp.y>=120&&tp.y<=400) 
-        {
-
-            if(menos==0) 
-            {
-                vol =vol--;
-                if(vol<=0)
-                {
-                    vol=0;
-                }
-                tft.setTextColor(GREEN);
-                tft.setTextSize(2);
-                tft.setCursor(160, 80);
-                tft.fillRoundRect(205, 80, 154, 50, 5, BLACK);
-                tft.printf("ML = %d ",vol);
-                wait(0.5);
-            }
-        }
-        bool estado_enter = enter;
-        wait(0.1);
-        bool enter_deb = enter && estado_enter;
-        if(!enter_deb){
-        status = 1;
-        }
-    }
-}
-//------------------------------------motores e afins----------------
-
 void desliga_motor(BusOut &motor) { motor = 0, 0, 0, 0; }
 
 struct PontoSolta {
@@ -416,12 +401,17 @@ struct PontoSolta {
     int volume_atual;
 };
 
+/*                                  Estrutura Controlador                       *\
+Ela terá variaveis que irão continuamente serem atualizadas durante
+todo o processo de pipetagem, para isso todas as funções que envolvem os parametros
+irão ficar  dentro dessa estrutrua e será chamada na rotina principal
+\*                                  Estrutura Controlador                       */
 struct Controlador {
     bool ref_feito[3];
     bool enable; // 0 -> emergencia; -> 1 funcionamento normal;
     volatile bool emergencia;
     int soltas;
-    int numero_pontos_solta;//nao sei se é a mesma coisa que a variavel de cima
+    int numero_pontos_solta; // nao sei se é a mesma coisa que a variavel de cima
     int max_coord[3];
     int min_coord[3];
     // ------ arrays ------
@@ -435,12 +425,12 @@ struct Controlador {
     int passo[3];    // passo x, y, z (FUSO)
     int tempo;
     int destino[3];
-    bool determinar_ponto; 
-    //int qual_tela;
+    bool determinar_ponto;
+    // int qual_tela;
     bool det_vol;
     bool pontos_finalizados;
     bool inicializacao;
-    //bool welcome;
+    // bool welcome;
     // --------------------- Rotina emergencia, display ---------------------------
     void variavel_default() {
         pc.printf("\rzerando valores\n");
@@ -453,19 +443,19 @@ struct Controlador {
             step[i] = 0;
             step_rev[i] = 512;
         }
-        numero_pontos_solta = 0;//numero de pontos de solta começa não definido
+        numero_pontos_solta = 0; // numero de pontos de solta começa não definido
         determinar_ponto = true; // 1 -> ponto de coleta; 0 -> ponto de solta
-        //qual_tela = 0; //0 -> welcome; 1->referenciando; 2 -> ponto de solta; 3-> ponto de coleta
+        // qual_tela = 0; //0 -> welcome; 1->referenciando; 2 -> ponto de solta; 3-> ponto de coleta
         passo[0] = 3;
         passo[1] = 3;
         passo[2] = 10;
-        inicializacao=true;
+        inicializacao = true;
         enable = true; // 0 -> emergencia; -> 1 funcionamento normal;
         emergencia = false;
         soltas = 0;
         tempo = 3;
-        det_vol= false;
-        pontos_finalizados=false;
+        det_vol = false;
+        pontos_finalizados = false;
     }
 
     void emerg() {
@@ -482,7 +472,7 @@ struct Controlador {
         pc.printf("sair emergencia \r\n");
         enable = true;
         emergencia = false;
-//        welcome_=true;
+        //        welcome_=true;
         variavel_default();
         tft.reset();
         tft.begin();
@@ -539,12 +529,11 @@ struct Controlador {
                         wait(1);
                     }
                 }
-
             }
         }
         pc.printf("referenciamento_concluido");
-        pc.printf("max_coord x:%d y:%d z:%d \r\n", max_coord[0], max_coord[1],max_coord[2]);
-        pc.printf("min_coord x:%d y:%d z:%d \r\n", min_coord[0], min_coord[1],min_coord[2]);
+        pc.printf("max_coord x:%d y:%d z:%d \r\n", max_coord[0], max_coord[1], max_coord[2]);
+        pc.printf("min_coord x:%d y:%d z:%d \r\n", min_coord[0], min_coord[1], min_coord[2]);
     }
 
     void motor_joystick(int x, int y, DigitalIn &z11, DigitalIn &z22) {
@@ -583,13 +572,13 @@ struct Controlador {
             }
             bool estado = z11;
             bool estado2 = z22;
-            //pc.printf("estado2 %d\r\n", estado2);
+            // pc.printf("estado2 %d\r\n", estado2);
 
             wait(0.1);
             bool bateu_z1 = z11 && estado;
             bool bateu_z2 = z22 && estado2;
-            //pc.printf("bateu_z2 %d\r\n", bateu_z2);
-            
+            // pc.printf("bateu_z2 %d\r\n", bateu_z2);
+
             if (!bateu_z1 && step[2] < max_coord[2]) {
                 if (emergencia) return;
                 aciona_motor(tempo, true, motores[2]);
@@ -603,8 +592,7 @@ struct Controlador {
             } else {
                 desliga_motor(motores[2]);
             }
-            //display();
-            
+            // display();
         }
     }
 
@@ -613,7 +601,7 @@ struct Controlador {
         coleta[0] = step[0];
         coleta[1] = step[1];
         coleta[2] = step[2];
-        determinar_ponto=false;
+        determinar_ponto = false;
     }
 
     void ponto_solta(int volume_desejado) {
@@ -666,13 +654,17 @@ struct Controlador {
     }
 };
 
+/*                                                *\
+|*    Chamando a estrutura - Funções adicionais    *|
+\*                                                */
 Controlador Controlador1;
 void fail_safe() { Controlador1.emerg(); }
-void sair_failsafe() { 
+
+void sair_failsafe() {
     Controlador1.sair_emerg();
-    //Controlador1.variavel_default(); 
-    
-    Controlador1.inicializacao=true;
+    // Controlador1.variavel_default();
+
+    Controlador1.inicializacao = true;
     for (int i = 0; i < 3; i++) {
         Controlador1.ref_feito[i] = false;
         Controlador1.coleta[i] = 0;
@@ -694,110 +686,116 @@ void setup() {
     tft.begin();
     tft.setRotation(Orientation);
     tft.fillScreen(BLACK);
-   
+
     delay(1000);
 }
 
+/*                       *\
+|*    Rotina principal   *|
+\*                       */
 void loop() {
     x = Jorge.joyx();
     y = Jorge.joyy();
 
     if (Controlador1.enable) {
-        // feito o referencimaneto - movimentação do eixo x, y, z
-        //pc.printf("\renable\n");
-        if(Controlador1.inicializacao){//inicialização da tela com mensagem de bem-vindo 
-        //RODAR UMA VEZ
-            // welcome();  
+        // pc.printf("\renable\n");
+
+        // ---------- inicialização da tela com mensagem de bem-vindo ----------
+        if (Controlador1.inicializacao) {
+            // RODAR UMA VEZ
+            // welcome();
             pc.printf("\rteladeboot\n");
             Controlador1.inicializacao = false;
-            
         }
 
-        bool estado_ref = Controlador1.ref_feito[0] && Controlador1.ref_feito[1] && Controlador1.ref_feito[2];
-        if(!estado_ref){
+        bool estado_ref =
+            Controlador1.ref_feito[0] && Controlador1.ref_feito[1] && Controlador1.ref_feito[2];
+
+        // ------------ Referenciamento - rotina + display ------------
+        if (!estado_ref) {
             pc.printf("\rentrou no de nao referenciado\n");
-            //mostrar tela para iniciar ref caso nao esteja referenciado
+            // mostrar tela para iniciar ref caso nao esteja referenciado
             apaga_tela();
             tela_comecar_ref();
             bool estado_enter = enter;
-           
+
             wait(0.1);
             bool enter_deb = enter && estado_enter;
 
-            // while (enter != 0 && !estado_ref)//nao sei se precisa desse while
-            // {
-               if(!enter_deb){
-                    pc.printf("referenciando\r\n");
-                    apaga_tela();
-                    tela_ref_em_anda();
-                    Controlador1.eixo_refere();
-                    apaga_tela();
-                    tela_ref_finalizado();
-                    estado_ref=true;
-                }
+            // while (enter != 0 && !estado_ref)//nao sei se precisa desse while{
+            if (!enter_deb) {
+                pc.printf("referenciando\r\n");
+                apaga_tela();
+                tela_ref_em_anda();
+                Controlador1.eixo_refere();
+                apaga_tela();
+                tela_ref_finalizado();
+                estado_ref = true;
+            }
             // }
         }
-        // estado_ref = Controlador1.ref_feito[0] && Controlador1.ref_feito[1] && Controlador1.ref_feito[2];
-        if(estado_ref){//estando referenciado
-            if(Controlador1.determinar_ponto){//ponto de coleta
+        // estado_ref = Controlador1.ref_feito[0] && Controlador1.ref_feito[1] &&
+        // Controlador1.ref_feito[2];
+
+        // --------------- Referenciamento feito ---------------
+        if (estado_ref) {
+            // --------------- Determinando o ponto de coleta ---------------
+            if (Controlador1.determinar_ponto) {
                 bool estado_enter = enter;
                 wait(0.1);
-                bool enter_deb = enter && estado_enter;
-
+                bool enter_deb = enter && estado_enter; // Debounce
                 apaga_tela();
                 tela_def_coleta();
                 Controlador1.motor_joystick(x, y, z1, z2);
-                if(!enter_deb){
+                if (!enter_deb) {
                     apaga_tela();
                     Controlador1.ponto_coleta();
-                    tela_mostrar_ponto_coleta_def(Controlador1.step[0],Controlador1.step[1],Controlador1.step[2]);
+                    tela_mostrar_ponto_coleta_def(Controlador1.step[0], Controlador1.step[1],
+                                                  Controlador1.step[2]);
                     wait(3);
-                    }
-                
+                }
             }
-            if(!Controlador1.determinar_ponto){
-                while(Controlador1.numero_pontos_solta==0){
-                num_pontos_solta=0;
-                apaga_tela();
-                tela_recipientes();
-                funcao_touch_det_num_recip();
-                
-                Controlador1.numero_pontos_solta= num_pontos_solta;
-                pc.printf("\rpontos de solta definidos: %d\n",Controlador1.numero_pontos_solta );
 
+            // --------------- Determinado os pontos de solta ---------------
+            if (!Controlador1.determinar_ponto) {
+                while (Controlador1.numero_pontos_solta == 0) {
+                    num_pontos_solta = 0;
+                    apaga_tela();
+                    tela_recipientes();
+                    funcao_touch_det_num_recip();
+                    Controlador1.numero_pontos_solta = num_pontos_solta;
+                    pc.printf("\rpontos de solta definidos: %d\n",
+                              Controlador1.numero_pontos_solta);
                 }
                 pc.printf("\r\ndepoisdowhile");
                 apaga_tela();
-
-                int i=0;
-                while(i<Controlador1.numero_pontos_solta && !Controlador1.pontos_finalizados){
-                    vol=0;
+                int i = 0;
+                while (i < Controlador1.numero_pontos_solta && !Controlador1.pontos_finalizados) {
+                    vol = 0;
                     Controlador1.motor_joystick(x, y, z1, z2);
                     bool estado_enter = enter;
                     wait(0.1);
                     bool enter_deb = enter && estado_enter;
-
                     apaga_tela();
                     tela_def_solta();
-
-                    if(!enter_deb){
+                    if (!enter_deb) {
                         apaga_tela();
-                        tela_mostrar_ponto_solta_def(Controlador1.step[0],Controlador1.step[1],Controlador1.step[2]);
-                        pc.printf("determinando ponto de solta %d\r\n", i+1);
+                        tela_mostrar_ponto_solta_def(Controlador1.step[0], Controlador1.step[1],
+                                                     Controlador1.step[2]);
+                        pc.printf("determinando ponto de solta %d\r\n", i + 1);
                         wait(2);
                         apaga_tela();
                         tela_ref_det_vol();
-                        Controlador1.ponto_solta(vol);//alterar o volume para o selecionado pela tela
+                        Controlador1.ponto_solta(
+                            vol); // alterar o volume para o selecionado pela tela
                         apaga_tela();
                         i++;
-                        if(i==Controlador1.numero_pontos_solta){
+                        if (i == Controlador1.numero_pontos_solta) {
                             Controlador1.pontos_finalizados = true;
                         }
                     }
-
                 }
             }
-        }      
-    
+        }
     }
 }
