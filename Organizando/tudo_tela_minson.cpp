@@ -103,8 +103,6 @@ int status = 0;
 
 bool tipo_de_movimento = false; // 0 atual para coleta ou 1 de pega para solta
 bool rotina_principal = false;  // 1 para rotina principal e 0 para outras rotinas
-int()
-
 
 void aciona_motor(int tempo, bool sentido, BusOut &motor) {
     if (sentido) {
@@ -121,6 +119,99 @@ void aciona_motor(int tempo, bool sentido, BusOut &motor) {
 }
 
 //***********************Funções da tela touch********************************//
+void tela_comecar_ref(){
+   tft.setTextColor(GREEN);
+   tft.setTextSize(3);
+   tft.setCursor(25, 80);
+   tft.println("Start Reference");
+//   if (enter==0){
+//       estado_atual=estado_atual+1;
+//       tft.fillScreen(BLACK);
+//       }
+}
+
+    void tela_ref_em_anda(){          
+            tft.setTextColor(GREEN);
+            tft.setTextSize(3);
+            tft.setCursor(3, 125);
+            tft.println("Referencing...");
+            }
+    void tela_ref_finalizado(){
+            //tft.fillScreen(BLACK);
+            tft.setTextColor(GREEN);
+            tft.setTextSize(3);
+            tft.setCursor(3, 55);
+            tft.println("Reference Defined");
+            wait(5);
+            //estado_atual=estado_atual+1;
+    }
+
+void apaga_tela(){
+            tft.fillScreen(BLACK);
+            }
+
+void tela_def_coleta()
+{
+    tft.setTextColor(GREEN);
+    tft.setTextSize(4);    // Tamanho do Texto no Display
+    tft.setCursor(80, 40); //  Orientação do texto X,Y
+    tft.println("Define");
+    
+    tft.setTextSize(4);  
+    tft.setCursor(80, 90); //  Orientação do texto X,Y
+    tft.println("Collect");
+    
+    tft.setTextSize(4);    // Tamanho do Texto no Display
+    tft.setCursor(80, 140); //  Orientação do texto X,Y
+    tft.println("Point");
+    // if (enter ==0){
+    //     etapa_atual = 1;
+    //     tft.fillScreen(BLACK);
+    //     wait(0.3);
+    //     }
+}
+
+void tela_mostrar_ponto_def(int x, int y, int z)
+{
+    //Título da sessão
+    tft.setTextColor(BLUE);
+    tft.setTextSize(4);    // Tamanho do Texto no Display
+    tft.setCursor(3, 10); //  Orientação do texto X,Y
+    tft.println("Collect Point");
+    
+
+    tft.setTextColor(WHITE);
+    tft.setTextSize(3);    // Tamanho do Texto no Display
+
+    tft.setCursor(10, 70);
+    tft.println("Position X =");
+    tft.setCursor(240, 70);
+    tft.println(x);
+
+    tft.setCursor(10, 120);
+    tft.println("Position Y =");
+    tft.setCursor(240, 120);
+    tft.println(y);
+
+    tft.setCursor(10, 170);
+    tft.println("Position Z =");
+    tft.setCursor(240, 170);
+    tft.println(z);
+
+    if (enter == 0)
+    {
+        status = 0;
+        // etapa_atual = 2;
+        tft.fillScreen(BLACK);
+        wait(0.3);
+
+        //Adicionando as posições em uma lista
+        pos_x[0] = x;
+        pos_y[0] = y;
+        pos_z[0] = z;
+
+    }
+}
 
 
 void desliga_motor(BusOut &motor) { motor = 0, 0, 0, 0; }
@@ -194,7 +285,7 @@ struct Controlador {
         pc.printf("sair emergencia \r\n");
         enable = true;
         emergencia = false;
-        welcome_=true;
+//        welcome_=true;
         variavel_default();
     }
 
@@ -379,12 +470,12 @@ void setup() {
     bot_emerg.fall(&fail_safe);
     bot_emerg.rise(&sair_failsafe);
 
-    //COISAS TELA
     tft.reset();
     tft.begin();
     tft.setRotation(Orientation);
-    tft.fillScreen(BLACK);  // Fundo do Display
-    wait(0.75);
+    tft.fillScreen(BLACK);
+   
+    delay(1000);
 }
 
 void loop() {
@@ -396,79 +487,93 @@ void loop() {
 
         if(Controlador1.inicializacao){//inicialização da tela com mensagem de bem-vindo 
         //RODAR UMA VEZ
-            welcome();  
+            // welcome();  
+            pc.printf("\rteladeboot\n");
             Controlador1.inicializacao = false;
         }
 
         bool estado_ref = Controlador1.ref_feito[0] && Controlador1.ref_feito[1] && Controlador1.ref_feito[2];
-        else if(!estado_ref){
+        if(!estado_ref){
+            pc.printf("\rentrou no de nao referenciado\n");
             //mostrar tela para iniciar ref caso nao esteja referenciado
-            tela_referenciamento_xyz();
+            apaga_tela();
+            tela_comecar_ref();
             bool estado_enter = enter;
            
             wait(0.1);
             bool enter_deb = enter && estado_enter;
 
-            while (enter != 0)//nao sei se precisa desse while
-            {
+            // while (enter != 0 && !estado_ref)//nao sei se precisa desse while
+            // {
                if(!enter_deb){
                     pc.printf("referenciando\r\n");
+                    apaga_tela();
+                    tela_ref_em_anda();
                     Controlador1.eixo_refere();
+                    apaga_tela();
+                    tela_ref_finalizado();
+                    estado_ref=true;
                 }
-            }
+            // }
         }
-        else if(Controlador1.estado_ref){//estando referenciado
+        // estado_ref = Controlador1.ref_feito[0] && Controlador1.ref_feito[1] && Controlador1.ref_feito[2];
+        if(estado_ref){//estando referenciado
             if(Controlador1.determinar_ponto){//ponto de coleta
                 bool estado_enter = enter;
                 wait(0.1);
                 bool enter_deb = enter && estado_enter;
 
-                while (enter_deb)//fica esperando enquanto valor=1
-                {
-                    tela_selecao_ponto_coleta();
+                // while (enter_deb)//fica esperando enquanto valor=1
+                // {
+                    apaga_tela();
+                    tela_def_coleta();
                     Controlador1.motor_joystick(x, y, z1, z2);
                     if(!enter_deb){
-                        pc.printf("determinando ponto de coleta\r\n");
+                        apaga_tela();
                         Controlador1.ponto_coleta();
+                        tela_mostrar_ponto_def(Controlador1.step[0],Controlador1.step[1],Controlador1.step[2]);
+                        // wait(1);
+                        // apaga_tela();
                     }
-                }
+                // }
             }
-
-
-            if(!Controlador1.determinar_ponto && !Controlador1.pontos_finalizados){//ponto de solta
-                tela_selecao_ponto_coleta();
-                Controlador1.motor_joystick(x, y, z1, z2);
-
-                bool estado_enter = enter;
-                wait(0.1);
-                bool enter_deb = enter && estado_enter;
-                bool outro_ponto = true;
-
-                if (enter_deb && outro_ponto)//se botao for pressionado entra
-                {                    
-                    //while(!enter_deb){//enquanto botao nao ta pressionado
-                        while(!Controlador1.det_vol){//enquanto volume naquele ponto nao tiver sido determinado
-                            pc.printf("determinando ponto numero X de solta\r\n");
-                            tela_selecao_volume();
-
-                            bool estado_enter = enter;
-                            wait(0.1);
-                            bool enter_deb = enter && estado_enter;
-
-                            if(enter_deb==0){
-                                Controlador1.det_vol=true;
-                                Controlador1.ponto_coleta(volume);
-                            }
-                        }
-
-                        tela_perguntando_se_tem_mais_pontos();
-                        //caso n tenha mais pontos alterar variavel "outro_ponto" para 0
-                    }
-                    
-                }
-            }
-
         }
+
+            // if(!Controlador1.determinar_ponto && !Controlador1.pontos_finalizados){//ponto de solta
+            //     tela_selecao_ponto_coleta();
+            //     Controlador1.motor_joystick(x, y, z1, z2);
+
+            //     bool estado_enter = enter;
+            //     wait(0.1);
+            //     bool enter_deb = enter && estado_enter;
+            //     bool outro_ponto = true;
+
+            //     if (enter_deb && outro_ponto)//se botao for pressionado entra
+            //     {                    
+            //         //while(!enter_deb){//enquanto botao nao ta pressionado
+            //             while(!Controlador1.det_vol){//enquanto volume naquele ponto nao tiver sido determinado
+            //                 pc.printf("determinando ponto numero X de solta\r\n");
+            //                 tela_selecao_volume();
+
+            //                 bool estado_enter = enter;
+            //                 wait(0.1);
+            //                 bool enter_deb = enter && estado_enter;
+
+            //                 if(enter_deb==0){
+            //                     Controlador1.det_vol=true;
+            //                     Controlador1.ponto_coleta(volume);
+            //                 }
+            //             }
+
+            //             tela_perguntando_se_tem_mais_pontos();
+            //             //caso n tenha mais pontos alterar variavel "outro_ponto" para 0
+            //         }
+                    
+            //     }
+            // }
+
+        
         
     
     }
+}
