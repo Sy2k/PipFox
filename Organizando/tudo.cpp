@@ -16,7 +16,7 @@ uint8_t Orientation = 1;
 #define YELLOW 0xFFE0
 #define WHITE 0xFFFF
 
-//   !!!CALIBRAR!!!
+//----------------------- WII Joystick  -----------------------
 #define Xmax 220  // X Joystick
 #define Xmin 20   // X Joystick
 #define CXmin 125 // Centro Joystick X
@@ -25,9 +25,6 @@ uint8_t Orientation = 1;
 #define CYmax 130 // Centro Joystick Y
 #define Ymax 210  // Y Joystick
 #define Ymin 20   // Y Joystick
-
-//-----------------------WII---------------------------
-
 #define p_sda PB_9
 #define p_scl PB_8
 WiiNunchuck Jorge(p_sda, p_scl);
@@ -68,6 +65,9 @@ bool print_valor_pos = true;
 bool tipo_de_movimento = false; // 0 atual para coleta ou 1 de pega para solta
 bool rotina_principal = false;  // 1 para rotina principal e 0 para outras rotinas
 
+/*                                  *\
+|* Função para acionamento do motor *|
+\*                                  */
 void aciona_motor(int tempo, bool sentido, BusOut &motor) {
     if (sentido) {
         for (int i = 0; i < 4; i++) {
@@ -110,7 +110,7 @@ struct Controlador {
     int destino[3];
     int totalpontos;
 
-    // --------------------- Rotina emergencia, display ---------------------------
+    // --------------------- definindo as variaveis globais ---------------------------
     void variavel_default() {
         for (int i = 0; i < 3; i++) {
             ref_feito[i] = false;
@@ -130,9 +130,13 @@ struct Controlador {
         tempo = 3;
         totalpontos=0;
     }
-
+    // --------------------- Rotina de emergência ---------------------------
     void emerg() {
+<<<<<<< HEAD
+        pc.printf("emergencia\r\n");
+=======
         pc.printf("emergencia \r\n");
+>>>>>>> f09f909ad72d42c5d4e38b585570578635b6d2f1
         for (int i = 0; i < 3; i++) {
             step[i] = 0;
             ref_feito[i] = false;
@@ -140,13 +144,17 @@ struct Controlador {
         enable = false;
         emergencia = true;
     }
-
+    // --------------------- Saida de emergência ---------------------------
     void sair_emerg() {
+<<<<<<< HEAD
+        pc.printf("sair emergencia\r\n");
+=======
         pc.printf("sair emergencia \r\n");
+>>>>>>> f09f909ad72d42c5d4e38b585570578635b6d2f1
         enable = true;
         emergencia = false;
     }
-
+    // --------------------- Display ---------------------------
     void display() {
         tft.setTextColor(GREEN);
         tft.setTextSize(3);
@@ -159,7 +167,7 @@ struct Controlador {
                    dist_x, dist_y, dist_z, step[0], step[1]);
         tft.printf("\npassos_z=%.0f", step[2]);
     }
-
+    // --------------------- Referenciamento dos eixos ---------------------------
     void eixo_refere() {
         for (int i = 0; i < 3; i++) {
             pc.printf("referenciando eixo %d\r\n", i);
@@ -198,7 +206,7 @@ struct Controlador {
             }
         }
     }
-
+    // --------------------- Motor joystick e botão eixo z ---------------------------
     void motor_joystick(int x, int y, DigitalIn &z11, DigitalIn &z22) {
         if (emergencia) return;
         bool bateu = endstops.read();
