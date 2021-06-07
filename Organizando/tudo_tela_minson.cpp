@@ -718,7 +718,6 @@ void loop() {
             apaga_tela();
             tela_comecar_ref();
             bool estado_enter = enter;
-
             wait(0.1);
             bool enter_deb = enter && estado_enter;
 
@@ -781,7 +780,7 @@ void loop() {
                     if (!enter_deb) {
                         apaga_tela();
                         tela_mostrar_ponto_solta_def(Controlador1.step[0], Controlador1.step[1],
-                                                     Controlador1.step[2]);
+                                                    Controlador1.step[2]);
                         pc.printf("determinando ponto de solta %d\r\n", i + 1);
                         wait(2);
                         apaga_tela();
