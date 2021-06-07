@@ -74,6 +74,7 @@ DigitalOut led_vermelho(PD_2);
 DigitalOut led_verde(PC_11);
 DigitalOut led_amarelo(PC_10);
 DigitalOut led_azul(PC_12);
+DigitalOut pipeta(PB_14);
 
 //----------------------- Botoes - Emergênica, endstops, enter, movimentação Z+ e Z-
 //-----------------------
@@ -95,11 +96,6 @@ int h = 0;
 int etapa_atual = 0;
 int pos;
 int status = 0;
-// bool welcome_ = true;
-
-//---------- variaveis variaveis responsaveis pela logica ---------
-bool tipo_de_movimento = false; // 0 atual para coleta ou 1 de pega para solta
-bool rotina_principal = false;  // 1 para rotina principal e 0 para outras rotinas
 
 /*                           *\
 |*    Funções do display     *|
@@ -108,18 +104,14 @@ void tela_comecar_ref() {
     tft.setTextColor(GREEN);
     tft.setTextSize(3);
     tft.setCursor(25, 80);
-    tft.println("Start Reference");
-    //   if (enter==0){
-    //       estado_atual=estado_atual+1;
-    //       tft.fillScreen(BLACK);
-    //       }
+    tft.println("Iniciar homing");
 }
 
 void tela_ref_em_anda() {
     tft.setTextColor(GREEN);
     tft.setTextSize(3);
     tft.setCursor(3, 125);
-    tft.println("Referencing...");
+    tft.println("Fazendo homing...");
 }
 
 void tela_ref_finalizado() {
@@ -127,8 +119,8 @@ void tela_ref_finalizado() {
     tft.setTextColor(GREEN);
     tft.setTextSize(3);
     tft.setCursor(3, 55);
-    tft.println("Reference Defined");
-    wait(5);
+    tft.println("Homing concluido");
+    wait(3);
     // estado_atual=estado_atual+1;
 }
 
@@ -138,46 +130,36 @@ void tela_def_coleta() {
     tft.setTextColor(GREEN);
     tft.setTextSize(4);    // Tamanho do Texto no Display
     tft.setCursor(80, 40); //  Orientação do texto X,Y
-    tft.println("Define");
+    tft.println("Definir");
 
     tft.setTextSize(4);
     tft.setCursor(80, 90); //  Orientação do texto X,Y
-    tft.println("Collect");
+    tft.println("Ponto");
 
     tft.setTextSize(4);     // Tamanho do Texto no Display
     tft.setCursor(80, 140); //  Orientação do texto X,Y
-    tft.println("Point");
-    // if (enter ==0){
-    //     etapa_atual = 1;
-    //     tft.fillScreen(BLACK);
-    //     wait(0.3);
-    //     }
+    tft.println("de Coleta");
 }
 
 void tela_def_solta() {
     tft.setTextColor(GREEN);
     tft.setTextSize(4);    // Tamanho do Texto no Display
-    tft.setCursor(80, 40); //  Orientação do texto X,Y
-    tft.println("Define");
+    tft.setCursor(70, 40); //  Orientação do texto X,Y
+    tft.println("Defina um");
 
     tft.setTextSize(4);
-    tft.setCursor(80, 90); //  Orientação do texto X,Y
-    tft.println("Solta");
+    tft.setCursor(70, 90); //  Orientação do texto X,Y
+    tft.println("ponto");
 
     tft.setTextSize(4);     // Tamanho do Texto no Display
-    tft.setCursor(80, 140); //  Orientação do texto X,Y
-    tft.println("Point");
-    // if (enter ==0){
-    //     etapa_atual = 1;
-    //     tft.fillScreen(BLACK);
-    //     wait(0.3);
-    //     }
+    tft.setCursor(70, 140); //  Orientação do texto X,Y
+    tft.println("de solta");
 }
 
 void tela_mostrar_ponto_coleta_def(int x, int y, int z) {
     // Título da sessão
     tft.setTextColor(BLUE);
-    tft.setTextSize(4);   // Tamanho do Texto no Display
+    tft.setTextSize(3);   // Tamanho do Texto no Display
     tft.setCursor(3, 10); //  Orientação do texto X,Y
     tft.println("Ponto de coleta");
 
@@ -185,43 +167,43 @@ void tela_mostrar_ponto_coleta_def(int x, int y, int z) {
     tft.setTextSize(3); // Tamanho do Texto no Display
 
     tft.setCursor(10, 70);
-    tft.println("Posição X =");
+    tft.println("Pos X =");
     tft.setCursor(240, 70);
     tft.println(x);
 
     tft.setCursor(10, 120);
-    tft.println("Posição Y =");
+    tft.println("Pos Y =");
     tft.setCursor(240, 120);
     tft.println(y);
 
     tft.setCursor(10, 170);
-    tft.println("Posição Z =");
+    tft.println("Pos Z =");
     tft.setCursor(240, 170);
     tft.println(z);
 }
 
-void tela_mostrar_ponto_solta_def(int x, int y, int z) {
+void tela_mostrar_ponto_solta_def(int x, int y, int z, int n) {
     // Título da sessão
     tft.setTextColor(BLUE);
-    tft.setTextSize(4);   // Tamanho do Texto no Display
+    tft.setTextSize(3);   // Tamanho do Texto no Display
     tft.setCursor(3, 10); //  Orientação do texto X,Y
-    tft.println("Ponto de solta");
+    tft.printf("Ponto de solta %d", n);
 
     tft.setTextColor(WHITE);
     tft.setTextSize(3); // Tamanho do Texto no Display
 
     tft.setCursor(10, 70);
-    tft.println("Posição X =");
+    tft.println("Pos X =");
     tft.setCursor(240, 70);
     tft.println(x);
 
     tft.setCursor(10, 120);
-    tft.println("Posição Y =");
+    tft.println("Pos Y =");
     tft.setCursor(240, 120);
     tft.println(y);
 
     tft.setCursor(10, 170);
-    tft.println("Posição Z =");
+    tft.println("Pos Z =");
     tft.setCursor(240, 170);
     tft.println(z);
 }
@@ -242,7 +224,7 @@ void tela_recipientes() {
     tft.setTextColor(GREEN);
     tft.setTextSize(2);
     tft.setCursor(160, 50);
-    tft.println("Recipientes");
+    tft.println("Num. Recipi.");
     tft.setCursor(160, 80);
 }
 
@@ -295,7 +277,7 @@ void funcao_touch_det_num_recip(void) {
             }
         }
         bool estado_enter = enter;
-        wait(0.1);
+        wait_ms(50);
         bool enter_deb = enter && estado_enter;
 
         if (!estado_enter) {
@@ -368,7 +350,7 @@ void tela_ref_det_vol(void) {
             }
         }
         bool estado_enter = enter;
-        wait(0.1);
+        wait_ms(50);
         bool enter_deb = enter && estado_enter;
         if (!enter_deb) {
             status = 1;
@@ -401,11 +383,11 @@ struct PontoSolta {
     int volume_atual;
 };
 
-/*                                  Estrutura Controlador                       *\
+/*                     Estrutura Controlador                       *\
 Ela terá variaveis que irão continuamente serem atualizadas durante
 todo o processo de pipetagem, para isso todas as funções que envolvem os parametros
 irão ficar  dentro dessa estrutrua e será chamada na rotina principal
-\*                                  Estrutura Controlador                       */
+\*                     Estrutura Controlador                       */
 struct Controlador {
     bool ref_feito[3];
     bool enable; // 0 -> emergencia; -> 1 funcionamento normal;
@@ -430,7 +412,8 @@ struct Controlador {
     bool det_vol;
     bool pontos_finalizados;
     bool inicializacao;
-    // bool welcome;
+    bool coleta_feita;
+    bool processo_concluido;
     // --------------------- Rotina emergencia, display ---------------------------
     void variavel_default() {
         pc.printf("\rzerando valores\n");
@@ -456,6 +439,8 @@ struct Controlador {
         tempo = 3;
         det_vol = false;
         pontos_finalizados = false;
+        coleta_feita = false;
+        processo_concluido = false;
     }
 
     void emerg() {
@@ -531,7 +516,7 @@ struct Controlador {
                 }
             }
         }
-        pc.printf("referenciamento_concluido");
+        pc.printf("referenciamento_concluido \r\n");
         pc.printf("max_coord x:%d y:%d z:%d \r\n", max_coord[0], max_coord[1], max_coord[2]);
         pc.printf("min_coord x:%d y:%d z:%d \r\n", min_coord[0], min_coord[1], min_coord[2]);
     }
@@ -574,7 +559,7 @@ struct Controlador {
             bool estado2 = z22;
             // pc.printf("estado2 %d\r\n", estado2);
 
-            wait(0.1);
+            wait_ms(50);
             bool bateu_z1 = z11 && estado;
             bool bateu_z2 = z22 && estado2;
             // pc.printf("bateu_z2 %d\r\n", bateu_z2);
@@ -606,7 +591,7 @@ struct Controlador {
 
     void ponto_solta(int volume_desejado) {
         pc.printf("determinando solta\r\n");
-        soltas = numero_pontos_solta;
+        soltas = numero_pontos_solta - 1;
         solta[soltas].coord[0] = step[0];
         solta[soltas].coord[1] = step[1];
         solta[soltas].coord[2] = step[2];
@@ -616,41 +601,64 @@ struct Controlador {
     void ir_ponto(int destino[3]) {
         // Levantando pipeta no maximo
         while (step[2] < max_coord[2]) {
+            pc.printf("Step x:%d Step y:%d Step z:%d \r\n", step[0], step[1], step[2]);
             if (emergencia) return;
-            aciona_motor(tempo, false, motores[2]);
+            aciona_motor(tempo, true, motores[2]);
+            step[2] += 4;
         }
         // Arrumando eixo x e y
         for (int i = 0; i < 2; i++) {
-            // indo com eixo x e y para SAH
+            // indo com eixo x e y para SAH - Sentido anti horario
             while (step[i] < destino[i]) {
                 if (emergencia) return;
                 aciona_motor(tempo, false, motores[i]);
+                step[i] -= 4;
             }
-            // indo com eixo x e y para SH
+            // indo com eixo x e y para SH - Sentido horario
             while (step[i] > destino[i]) {
                 if (emergencia) return;
                 aciona_motor(tempo, true, motores[i]);
+                step[i] += 4;
             }
         }
         // Descendo pipeta para ponto desejado
-        while (step[2] < destino[2]) {
+        while (step[2] > destino[2]) {
+            pc.printf("Step x:%d Step y:%d Step z:%d \r\n", step[0], step[1], step[2]);
             if (emergencia) return;
             aciona_motor(tempo, false, motores[2]);
+            step[2] -= 4;
         }
+        
+        // Levantando pipeta no maximo de novo
+        while (step[2] < max_coord[2]) {
+            pc.printf("Step x:%d Step y:%d Step z:%d \r\n", step[0], step[1], step[2]);
+            if (emergencia) return;
+            aciona_motor(tempo, true, motores[2]);
+            step[2] += 4;
+        }
+
     }
 
     void coletar() {
-        ir_ponto(coleta);
-        led_azul = true;
+        if(!coleta_feita){
+            printf("%d\n\r",coleta[2]);
+            ir_ponto(coleta);
+            pipeta = true;
+            wait(2);
+            pipeta = false;
+        }
     }
 
     void soltar() {
         ir_ponto(solta[soltas].coord);
-        led_azul = false;
+        pipeta = true;
         solta[soltas].volume_atual++;
         if (solta[soltas].volume_atual == solta[soltas].volume_desejado) {
-            soltas++;
+            soltas--;
+            pc.printf("%d\r\n", soltas);
+            if(soltas==-1){processo_concluido = true;}
         }
+        pipeta = false;
     }
 };
 
@@ -673,7 +681,11 @@ void sair_failsafe() {
         Controlador1.distancia_solta_coleta[i] = 0;
         Controlador1.step[i] = 0;
         Controlador1.step_rev[i] = 512;
+        Controlador1.max_coord[i] = 0;
+        Controlador1.min_coord[i] = 0;
     }
+
+    
 }
 
 void setup() {
@@ -696,6 +708,8 @@ void setup() {
 void loop() {
     x = Jorge.joyx();
     y = Jorge.joyy();
+    pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0], Controlador1.step[1],
+                                                     Controlador1.step[2]);
 
     if (Controlador1.enable) {
         // pc.printf("\renable\n");
@@ -719,10 +733,9 @@ void loop() {
             tela_comecar_ref();
             bool estado_enter = enter;
 
-            wait(0.1);
+            wait_ms(50);
             bool enter_deb = enter && estado_enter;
 
-            // while (enter != 0 && !estado_ref)//nao sei se precisa desse while{
             if (!enter_deb) {
                 pc.printf("referenciando\r\n");
                 apaga_tela();
@@ -732,7 +745,6 @@ void loop() {
                 tela_ref_finalizado();
                 estado_ref = true;
             }
-            // }
         }
         // estado_ref = Controlador1.ref_feito[0] && Controlador1.ref_feito[1] &&
         // Controlador1.ref_feito[2];
@@ -742,7 +754,7 @@ void loop() {
             // --------------- Determinando o ponto de coleta ---------------
             if (Controlador1.determinar_ponto) {
                 bool estado_enter = enter;
-                wait(0.1);
+                wait_ms(50);
                 bool enter_deb = enter && estado_enter; // Debounce
                 apaga_tela();
                 tela_def_coleta();
@@ -763,31 +775,36 @@ void loop() {
                     apaga_tela();
                     tela_recipientes();
                     funcao_touch_det_num_recip();
+                    wait(1);
                     Controlador1.numero_pontos_solta = num_pontos_solta;
                     pc.printf("\rpontos de solta definidos: %d\n",
                               Controlador1.numero_pontos_solta);
                 }
-                pc.printf("\r\ndepoisdowhile");
+                //pc.printf("\r\ndepoisdowhile");
                 apaga_tela();
                 int i = 0;
                 while (i < Controlador1.numero_pontos_solta && !Controlador1.pontos_finalizados) {
                     vol = 0;
                     Controlador1.motor_joystick(x, y, z1, z2);
+                    pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0], Controlador1.step[1],
+                                                     Controlador1.step[2]);
                     bool estado_enter = enter;
-                    wait(0.1);
+                    wait_ms(50);
                     bool enter_deb = enter && estado_enter;
+                    
                     apaga_tela();
                     tela_def_solta();
+                    
                     if (!enter_deb) {
                         apaga_tela();
                         tela_mostrar_ponto_solta_def(Controlador1.step[0], Controlador1.step[1],
-                                                     Controlador1.step[2]);
+                                                     Controlador1.step[2], i+1);
                         pc.printf("determinando ponto de solta %d\r\n", i + 1);
                         wait(2);
                         apaga_tela();
                         tela_ref_det_vol();
-                        Controlador1.ponto_solta(
-                            vol); // alterar o volume para o selecionado pela tela
+                        wait(2);
+                        Controlador1.ponto_solta(vol); // alterar o volume para o selecionado pela tela
                         apaga_tela();
                         i++;
                         if (i == Controlador1.numero_pontos_solta) {
@@ -795,6 +812,22 @@ void loop() {
                         }
                     }
                 }
+            }
+            // Tem que add depois a tela para perguntar se deseja iniciar o processo de pipetagem automatica
+            if(Controlador1.pontos_finalizados && !Controlador1.coleta_feita && Controlador1.soltas>=0 && !Controlador1.processo_concluido){
+                pc.printf("coletando\r\n");
+                Controlador1.coletar();
+                Controlador1.coleta_feita = true;
+            }
+            if(Controlador1.pontos_finalizados && Controlador1.coleta_feita && Controlador1.soltas>=0 && !Controlador1.processo_concluido){
+                pc.printf("coleta_feita\r\n");
+                Controlador1.soltar();
+                Controlador1.coleta_feita = false;
+                pc.printf("Solta feita\r\n");
+            }
+
+            if(Controlador1.processo_concluido){
+                pc.printf("Processo concluido\r\n");
             }
         }
     }
