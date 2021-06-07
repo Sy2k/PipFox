@@ -158,6 +158,7 @@ void tela_def_solta() {
     tft.println("de solta");
 }
 
+
 void tela_recipientes() {
     // tft.drawRoundRect(15, 25, 134, 65, 5, WHITE);
     tft.setTextColor(GREEN);
@@ -307,6 +308,28 @@ void tela_ref_det_vol(void) {
         }
     }
 }
+void welcome()
+    {
+        tft.setTextColor(BLUE);
+        tft.setTextSize(5);    // Tamanho do Texto no Display
+        tft.setCursor(20, 40); //  Orientação do texto X,Y
+        tft.println("Welcome");
+        wait(1);
+        
+        tft.setTextColor(GREEN);
+        tft.setTextSize(3);    // Tamanho do Texto no Display
+        tft.setCursor(130, 100); //  Orientação do texto X,Y
+        tft.println("To");
+        wait(1);
+        
+        tft.setTextColor(RED);
+        tft.setTextSize(5);    // Tamanho do Texto no Display
+        tft.setCursor(120, 140); //  Orientação do texto X,Y
+        tft.println("PipFox");
+        wait(0.5);
+    }
+
+
 /*                                     *\
 |*    Funções do gerais e Estrutura     *|
 \*                                     */
@@ -417,7 +440,6 @@ struct Controlador {
     }
 
     void tela_mostrar_ponto_coleta_def(int x, int y, int z) {
-
         float x_cm = x * passo[0] / (step_rev[0]);
         float y_cm = y * passo[1] / (step_rev[1]);
         float z_cm = z * passo[2] / (step_rev[2]);
@@ -448,9 +470,9 @@ struct Controlador {
 
 
     void tela_mostrar_ponto_solta_def(int x, int y, int z, int n) {
-        float x_cm = x * passo[0] / (step_rev[0]*100);
-        float y_cm = y * passo[1] / (step_rev[1]*100);
-        float z_cm = z * passo[2] / (step_rev[2]*100);
+        float x_cm = x * passo[0] / (step_rev[0]);
+        float y_cm = y * passo[1] / (step_rev[1]);
+        float z_cm = z * passo[2] / (step_rev[2]);
         // Título da sessão
         tft.setTextColor(BLUE);
         tft.setTextSize(3);   // Tamanho do Texto no Display
@@ -652,14 +674,6 @@ struct Controlador {
             aciona_motor(tempo, false, motores[2]);
             step[2] -= 4;
         }
-        
-        // Levantando pipeta no maximo de novo
-        while (step[2] < max_coord[2]) {
-            pc.printf("Step x:%d Step y:%d Step z:%d \r\n", step[0], step[1], step[2]);
-            if (emergencia) return;
-            aciona_motor(tempo, true, motores[2]);
-            step[2] += 4;
-        }
 
     }
 
@@ -672,14 +686,49 @@ struct Controlador {
             pipeta = false;
         }
     }
+    void novo_processo(){
+    bool esperando_novo_processo = true;
+    while(esperando_novo_processo){
+        tft.setTextColor(BLUE);
+        tft.setTextSize(3);   
+        tft.setCursor(45, 70);
+        tft.println("New Operation");
+        tft.drawRoundRect(20, 60, 280, 40, 1, WHITE);
 
+        tft.setTextColor(YELLOW);
+        tft.setTextSize(3);   
+        tft.setCursor(45, 140);
+        tft.println("Processo");
+
+        tft.setTextColor(YELLOW);
+        tft.setTextSize(3);   
+        tft.setCursor(45, 180);
+        tft.println("finalizado");
+
+        bool estado_enter = enter;
+        wait_ms(50);
+        bool enter_deb = enter && estado_enter;
+        if(!enter_deb){
+            esperando_novo_processo = false;
+            inicializacao = true;
+            enable = true; // 0 -> emergencia; -> 1 funcionamento normal;
+            emergencia = false;
+            soltas = 0;
+            tempo = 3;
+            det_vol = false;
+            pontos_finalizados = false;
+            coleta_feita = false;
+            processo_concluido = false;
+            }
+        }
+    }
     void soltar() {
         ir_ponto(solta[soltas].coord);
         pipeta = true;
         solta[soltas].volume_atual++;
         if (solta[soltas].volume_atual == solta[soltas].volume_desejado) {
             soltas--;
-            pc.printf("%d\r\n", soltas);
+            pc.printf("soltas:%d\r\n", soltas);
             if(soltas==-1){processo_concluido = true;
             funcionamento.stop();
             }
@@ -696,7 +745,7 @@ void fail_safe() { Controlador1.emerg(); }
 
 void sair_failsafe() {
     Controlador1.sair_emerg();
-    // Controlador1.variavel_default();
+    Controlador1.variavel_default();
 
     Controlador1.inicializacao = true;
     for (int i = 0; i < 3; i++) {
@@ -710,8 +759,6 @@ void sair_failsafe() {
         Controlador1.max_coord[i] = 0;
         Controlador1.min_coord[i] = 0;
     }
-
-    
 }
 
 void setup() {
@@ -742,7 +789,7 @@ void loop() {
         // ---------- inicialização da tela com mensagem de bem-vindo ----------
         if (Controlador1.inicializacao) {
             // RODAR UMA VEZ
-            // welcome();
+            welcome();
             pc.printf("\rteladeboot\n");
             Controlador1.inicializacao = false;
             funcionamento.reset();
@@ -854,7 +901,16 @@ void loop() {
             }
 
             if(Controlador1.processo_concluido){
+                while (Controlador1.step[2] < Controlador1.max_coord[2]) {
+                    pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0], Controlador1.step[1], Controlador1.step[2]);
+                    if (Controlador1.emergencia) return;
+                    aciona_motor(3, true, motores[2]);
+                    Controlador1.step[2] += 4;
+                }
                 pc.printf("Processo concluido em %.2f segundos\r\n", funcionamento.read());
+                 // Levantando pipeta no maximo de novo
+                Controlador1.novo_processo();
+                apaga_tela();
             }
         }
     }
