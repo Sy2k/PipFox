@@ -31,6 +31,8 @@ bool menos = 0;
 int vol = 0;
 int num_pontos_solta;
 
+Timer funcionamento;
+
 int pos_x[10];
 int pos_y[10];
 int pos_z[10];
@@ -67,7 +69,7 @@ BusOut motores[3] = {BusOut(PC_4, PB_13, PB_14, PB_1), BusOut(PB_2, PB_11, PB_12
 #define CYmax 130  // Centro Joystick Y
 #define Ymax 210   // Y Joystick
 #define Ymin 20    // Y Joystick
-WiiNunchuck Jorge(p_sda, p_scl);
+WiiNunchuck Nunchuck(p_sda, p_scl);
 
 //----------------------- Declaração das portas dos leds -----------------------
 DigitalOut led_vermelho(PD_2);
@@ -154,58 +156,6 @@ void tela_def_solta() {
     tft.setTextSize(4);     // Tamanho do Texto no Display
     tft.setCursor(70, 140); //  Orientação do texto X,Y
     tft.println("de solta");
-}
-
-void tela_mostrar_ponto_coleta_def(int x, int y, int z) {
-    // Título da sessão
-    tft.setTextColor(BLUE);
-    tft.setTextSize(3);   // Tamanho do Texto no Display
-    tft.setCursor(3, 10); //  Orientação do texto X,Y
-    tft.println("Ponto de coleta");
-
-    tft.setTextColor(WHITE);
-    tft.setTextSize(3); // Tamanho do Texto no Display
-
-    tft.setCursor(10, 70);
-    tft.println("Pos X =");
-    tft.setCursor(240, 70);
-    tft.println(x);
-
-    tft.setCursor(10, 120);
-    tft.println("Pos Y =");
-    tft.setCursor(240, 120);
-    tft.println(y);
-
-    tft.setCursor(10, 170);
-    tft.println("Pos Z =");
-    tft.setCursor(240, 170);
-    tft.println(z);
-}
-
-void tela_mostrar_ponto_solta_def(int x, int y, int z, int n) {
-    // Título da sessão
-    tft.setTextColor(BLUE);
-    tft.setTextSize(3);   // Tamanho do Texto no Display
-    tft.setCursor(3, 10); //  Orientação do texto X,Y
-    tft.printf("Ponto de solta %d", n);
-
-    tft.setTextColor(WHITE);
-    tft.setTextSize(3); // Tamanho do Texto no Display
-
-    tft.setCursor(10, 70);
-    tft.println("Pos X =");
-    tft.setCursor(240, 70);
-    tft.println(x);
-
-    tft.setCursor(10, 120);
-    tft.println("Pos Y =");
-    tft.setCursor(240, 120);
-    tft.println(y);
-
-    tft.setCursor(10, 170);
-    tft.println("Pos Z =");
-    tft.setCursor(240, 170);
-    tft.println(z);
 }
 
 void tela_recipientes() {
@@ -466,17 +416,64 @@ struct Controlador {
         delay(1000);
     }
 
-    void display() {
-        tft.setTextColor(GREEN);
-        tft.setTextSize(3);
-        tft.setCursor(0, 10); //  Orientação do texto X,Y
-        int dist_x = step[0] * passo[0] / step_rev[0];
-        int dist_y = step[1] * passo[1] / step_rev[1];
-        int dist_z = step[2] * passo[2] / step_rev[2];
-        tft.printf("distancia_x=%.2f\ndistancia_y=%.2f\ndistancia_z=%.f\npassos_x=%."
-                   "0f\npassos_y=%.0f",
-                   dist_x, dist_y, dist_z, step[0], step[1]);
-        tft.printf("\npassos_z=%.0f", step[2]);
+    void tela_mostrar_ponto_coleta_def(int x, int y, int z) {
+
+        float x_cm = x * passo[0] / (step_rev[0]);
+        float y_cm = y * passo[1] / (step_rev[1]);
+        float z_cm = z * passo[2] / (step_rev[2]);
+
+        tft.setTextColor(BLUE);
+        tft.setTextSize(3);   // Tamanho do Texto no Display
+        tft.setCursor(3, 10); //  Orientação do texto X,Y
+        tft.println("Ponto de coleta");
+
+        tft.setTextColor(WHITE);
+        tft.setTextSize(3); // Tamanho do Texto no Display
+
+        tft.setCursor(10, 70);
+        tft.println("Pos X =");
+        tft.setCursor(160, 70);//tava 240 antes
+        tft.printf("%.2f",x_cm);
+
+        tft.setCursor(10, 120);
+        tft.println("Pos Y =");
+        tft.setCursor(160, 120);
+        tft.printf("%.2f",y_cm);
+
+        tft.setCursor(10, 170);
+        tft.println("Pos Z =");
+        tft.setCursor(160, 170);
+        tft.printf("%.2f",z_cm);
+    }
+
+
+    void tela_mostrar_ponto_solta_def(int x, int y, int z, int n) {
+        float x_cm = x * passo[0] / (step_rev[0]*100);
+        float y_cm = y * passo[1] / (step_rev[1]*100);
+        float z_cm = z * passo[2] / (step_rev[2]*100);
+        // Título da sessão
+        tft.setTextColor(BLUE);
+        tft.setTextSize(3);   // Tamanho do Texto no Display
+        tft.setCursor(3, 10); //  Orientação do texto X,Y
+        tft.printf("Ponto de solta %d", n);
+
+        tft.setTextColor(WHITE);
+        tft.setTextSize(3); // Tamanho do Texto no Display
+
+        tft.setCursor(10, 70);
+        tft.println("Pos X =");
+        tft.setCursor(160, 70);
+        tft.printf("%.2f",x_cm);
+
+        tft.setCursor(10, 120);
+        tft.println("Pos Y =");
+        tft.setCursor(160, 120);
+        tft.printf("%.2f",y_cm);
+
+        tft.setCursor(10, 170);
+        tft.println("Pos Z =");
+        tft.setCursor(160, 170);
+        tft.printf("%.2f",z_cm);
     }
 
     void eixo_refere() {
@@ -531,9 +528,18 @@ struct Controlador {
                 pc.printf("Motor X sentido 1\r\n");
                 aciona_motor(tempo, true, motores[0]);
                 step[0] += 4;
+                aciona_motor(tempo, true, motores[0]);
+                step[0] += 4;
+                aciona_motor(tempo, true, motores[0]);
+                step[0] += 4;
+
             } else if (x < CXmin && step[0] > min_coord[0]) {
                 if (emergencia) return;
                 pc.printf("Motor X sentido 2\r\n");
+                aciona_motor(tempo, false, motores[0]);
+                step[0] -= 4;
+                aciona_motor(tempo, false, motores[0]);
+                step[0] -= 4;
                 aciona_motor(tempo, false, motores[0]);
                 step[0] -= 4;
             } else {
@@ -546,11 +552,21 @@ struct Controlador {
                 pc.printf("Motor Y sentido 1\r\n");
                 aciona_motor(tempo, true, motores[1]);
                 step[1] += 4;
+                aciona_motor(tempo, true, motores[1]);
+                step[1] += 4;
+                aciona_motor(tempo, true, motores[1]);
+                step[1] += 4;
+
             } else if (y < CYmin && step[1] > min_coord[1]) {
                 if (emergencia) return;
                 pc.printf("Motor Y sentido 2\r\n");
                 aciona_motor(tempo, false, motores[1]);
                 step[1] -= 4;
+                aciona_motor(tempo, false, motores[1]);
+                step[1] -= 4;
+                aciona_motor(tempo, false, motores[1]);
+                step[1] -= 4;
+
             } else {
                 // pc.printf("Motor Y desligado\r\n");
                 desliga_motor(motores[1]);
@@ -567,13 +583,21 @@ struct Controlador {
             if (!bateu_z1 && step[2] < max_coord[2]) {
                 if (emergencia) return;
                 aciona_motor(tempo, true, motores[2]);
-                pc.printf("Motor Z sentido 1\r\n");
                 step[2] += 4;
+                aciona_motor(tempo, true, motores[2]);
+                step[2] += 4;
+                aciona_motor(tempo, true, motores[2]);
+                step[2] += 4;
+
             } else if (!bateu_z2 && step[2] > min_coord[2]) {
                 if (emergencia) return;
-                pc.printf("Motor Z sentido 2\r\n");
                 aciona_motor(tempo, false, motores[2]);
                 step[2] -= 4;
+                aciona_motor(tempo, false, motores[2]);
+                step[2] -= 4;
+                aciona_motor(tempo, false, motores[2]);
+                step[2] -= 4;
+
             } else {
                 desliga_motor(motores[2]);
             }
@@ -656,7 +680,9 @@ struct Controlador {
         if (solta[soltas].volume_atual == solta[soltas].volume_desejado) {
             soltas--;
             pc.printf("%d\r\n", soltas);
-            if(soltas==-1){processo_concluido = true;}
+            if(soltas==-1){processo_concluido = true;
+            funcionamento.stop();
+            }
         }
         pipeta = false;
     }
@@ -706,13 +732,12 @@ void setup() {
 |*    Rotina principal   *|
 \*                       */
 void loop() {
-    x = Jorge.joyx();
-    y = Jorge.joyy();
+    x = Nunchuck.joyx();
+    y = Nunchuck.joyy();
     pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0], Controlador1.step[1],
                                                      Controlador1.step[2]);
 
     if (Controlador1.enable) {
-        // pc.printf("\renable\n");
 
         // ---------- inicialização da tela com mensagem de bem-vindo ----------
         if (Controlador1.inicializacao) {
@@ -720,6 +745,7 @@ void loop() {
             // welcome();
             pc.printf("\rteladeboot\n");
             Controlador1.inicializacao = false;
+            funcionamento.reset();
         }
 
         bool estado_ref =
@@ -727,7 +753,7 @@ void loop() {
 
         // ------------ Referenciamento - rotina + display ------------
         if (!estado_ref) {
-            pc.printf("\rentrou no de nao referenciado\n");
+            pc.printf("\rnao esta referenciao\n");
             // mostrar tela para iniciar ref caso nao esteja referenciado
             apaga_tela();
             tela_comecar_ref();
@@ -762,7 +788,8 @@ void loop() {
                 if (!enter_deb) {
                     apaga_tela();
                     Controlador1.ponto_coleta();
-                    tela_mostrar_ponto_coleta_def(Controlador1.step[0], Controlador1.step[1],
+                    funcionamento.start();
+                    Controlador1.tela_mostrar_ponto_coleta_def(Controlador1.step[0], Controlador1.step[1],
                                                   Controlador1.step[2]);
                     wait(3);
                 }
@@ -797,7 +824,7 @@ void loop() {
                     
                     if (!enter_deb) {
                         apaga_tela();
-                        tela_mostrar_ponto_solta_def(Controlador1.step[0], Controlador1.step[1],
+                        Controlador1.tela_mostrar_ponto_solta_def(Controlador1.step[0], Controlador1.step[1],
                                                      Controlador1.step[2], i+1);
                         pc.printf("determinando ponto de solta %d\r\n", i + 1);
                         wait(2);
@@ -827,7 +854,7 @@ void loop() {
             }
 
             if(Controlador1.processo_concluido){
-                pc.printf("Processo concluido\r\n");
+                pc.printf("Processo concluido em %.2f segundos\r\n", funcionamento.read());
             }
         }
     }
