@@ -807,7 +807,7 @@ void loop() {
               Controlador1.step[2]);
 
     if (Controlador1.enable) {
-        led_verde = tur
+        led_verde = true;
         // ---------- inicialização da tela com mensagem de bem-vindo ----------
         if (Controlador1.inicializacao) {
             // RODAR UMA VEZ
