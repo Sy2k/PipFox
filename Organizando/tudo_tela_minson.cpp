@@ -28,7 +28,7 @@ uint8_t Orientation = 1;
 
 bool mais = 0;
 bool menos = 0;
-int vol = 0;
+int vol = 1;
 int num_pontos_solta;
 
 Timer funcionamento;
@@ -103,10 +103,22 @@ int status = 0;
 |*    Funções do display     *|
 \*                           */
 void tela_comecar_ref() {
-    tft.setTextColor(GREEN);
-    tft.setTextSize(3);
-    tft.setCursor(25, 80);
-    tft.println("Iniciar homing");
+    bool esperando = true;
+    while(esperando){
+        tft.setTextColor(GREEN);
+        tft.setTextSize(3);
+        tft.setCursor(25, 80);
+        tft.println("Iniciar homing");
+
+        bool estado_enter = enter;
+
+        wait_ms(50);
+        bool enter_deb = enter && estado_enter;
+
+        if (!enter_deb) {
+            esperando = false;
+        }
+    }
 }
 
 void tela_ref_em_anda() {
@@ -176,6 +188,12 @@ void tela_recipientes() {
     tft.setCursor(160, 50);
     tft.println("Num. Recipi.");
     tft.setCursor(160, 80);
+
+    tft.setTextColor(GREEN);
+    tft.setTextSize(2);
+    tft.setCursor(160, 80);
+    tft.fillRoundRect(205, 80, 154, 50, 5, BLACK);
+    tft.printf("NUM = %d ", num_pontos_solta);
 }
 
 void funcao_touch_det_num_recip(void) {
@@ -183,7 +201,7 @@ void funcao_touch_det_num_recip(void) {
     tft.setTextSize(2);
 
     tft.setTextColor(MAGENTA, BLUE);
-    num_pontos_solta = 0;
+    num_pontos_solta = 1;
 
     while (definindo) {
         tp = ts.getPoint();
@@ -254,8 +272,14 @@ void tela_ref_det_vol(void) {
     tft.setTextColor(GREEN);
     tft.setTextSize(2);
     tft.setCursor(160, 50);
-    tft.println("Volume (ML)");
+    tft.println("Volume (ml)");
     tft.setCursor(160, 80);
+
+    tft.setTextColor(GREEN);
+    tft.setTextSize(2);
+    tft.setCursor(160, 80);
+    tft.fillRoundRect(205, 80, 154, 50, 5, BLACK);
+    tft.printf("ml(s) = %d ", vol);
 
     tft.setTextSize(2);
     tft.setTextColor(MAGENTA, BLUE);
@@ -327,6 +351,43 @@ void welcome() {
     wait(0.5);
 }
 
+void tela_iniciar_rotina()
+{
+    bool esperando = true;
+    while(esperando){
+    
+        tft.setTextColor(GREEN);
+        tft.setTextSize(4);    // Tamanho do Texto no Display
+        tft.setCursor(50, 70); //  Orientação do texto X,Y
+        tft.println("Realizar");
+        
+        tft.setTextSize(4);  
+        tft.setCursor(50, 120); //  Orientação do texto X,Y
+        tft.println("Rotina?");
+
+        bool estado_enter = enter;
+        wait_ms(50);
+        bool enter_deb = enter && estado_enter;
+
+    if(!enter_deb){
+        esperando = false;
+    }
+    
+    }
+}
+
+void tela_realizando_rotina()
+{
+    tft.setTextColor(GREEN);
+    tft.setTextSize(4);    // Tamanho do Texto no Display
+    tft.setCursor(50, 70); //  Orientação do texto X,Y
+    tft.println("Realizando");
+    
+    tft.setTextSize(4);  
+    tft.setCursor(50, 120); //  Orientação do texto X,Y
+    tft.println("Rotina!");
+}
+
 /*                                     *\
 |*    Funções do gerais e Estrutura     *|
 \*                                     */
@@ -383,8 +444,10 @@ struct Controlador {
     bool pontos_finalizados;
     bool inicializacao;
     bool coleta_feita;
+    bool processo_iniciado;
     bool processo_concluido;
     bool primeira_solta;
+
     // --------------------- Rotina emergencia, display ---------------------------
     void variavel_default() {
         pc.printf("\rzerando valores\n");
@@ -414,6 +477,7 @@ struct Controlador {
         processo_concluido = false;
         numero_pontos_solta = 0; // numero de pontos de solta começa não definido
         determinar_ponto = true; // 1 -> ponto de coleta; 0 -> ponto de solta
+        processo_iniciado = false;
     }
 
     void emerg() {
@@ -780,6 +844,8 @@ struct Controlador {
                     distancia_solta_coleta[i] = 0;
                     step[i] = 0;
                     step_rev[i] = 512;
+                    solta[soltas].coord[i] = 0;
+                    solta[i].coord[i] = 0;
                 }
                 // solta.clear();
                 // PontoSolta solta[9];
@@ -844,6 +910,7 @@ void loop() {
             pc.printf("\rteladeboot\n");
             Controlador1.inicializacao = false;
             funcionamento.reset();
+            apaga_tela();
         }
 
         bool estado_ref =
@@ -853,22 +920,18 @@ void loop() {
         if (!estado_ref) {
             pc.printf("\rnao esta referenciao\n");
             // mostrar tela para iniciar ref caso nao esteja referenciado
-            apaga_tela();
+            
             tela_comecar_ref();
-            bool estado_enter = enter;
-
-            wait_ms(50);
-            bool enter_deb = enter && estado_enter;
-
-            if (!enter_deb) {
-                pc.printf("referenciando\r\n");
-                apaga_tela();
-                tela_ref_em_anda();
-                Controlador1.eixo_refere();
-                apaga_tela();
-                tela_ref_finalizado();
-                estado_ref = true;
-            }
+                       
+            pc.printf("referenciando\r\n");
+            apaga_tela();
+            tela_ref_em_anda();
+            Controlador1.eixo_refere();
+            apaga_tela();
+            tela_ref_finalizado();
+            estado_ref = true;
+            apaga_tela();
+            
         }
         // estado_ref = Controlador1.ref_feito[0] && Controlador1.ref_feito[1] &&
         // Controlador1.ref_feito[2];
@@ -880,7 +943,7 @@ void loop() {
                 bool estado_enter = enter;
                 wait_ms(50);
                 bool enter_deb = enter && estado_enter; // Debounce
-                apaga_tela();
+                
                 tela_def_coleta();
                 Controlador1.motor_joystick(x, y, z1, z2);
                 if (!enter_deb) {
@@ -896,7 +959,7 @@ void loop() {
             // --------------- Determinado os pontos de solta ---------------
             if (!Controlador1.determinar_ponto) {
                 while (Controlador1.numero_pontos_solta == 0) {
-                    num_pontos_solta = 0;
+                    num_pontos_solta = 1;
                     apaga_tela();
                     tela_recipientes();
                     funcao_touch_det_num_recip();
@@ -912,7 +975,7 @@ void loop() {
                 while (i < Controlador1.numero_pontos_solta && !Controlador1.pontos_finalizados) {
                     x = Nunchuck.joyx();
                     y = Nunchuck.joyy();
-                    vol = 0;
+                    vol = 1;
 
                     Controlador1.motor_joystick(x, y, z1, z2);
                     pc.printf("Step x:%d Step y:%d Step z:%d SOLTA \r\n", Controlador1.step[0],
@@ -946,6 +1009,9 @@ void loop() {
 
                         if (i == Controlador1.numero_pontos_solta) {
                             Controlador1.pontos_finalizados = true;
+                            tela_iniciar_rotina();
+                            apaga_tela();
+                            tela_realizando_rotina();
                         }
                     }
                 }
@@ -953,8 +1019,11 @@ void loop() {
 
             // Tem que add depois a tela para perguntar se deseja iniciar o processo de pipetagem
             // automatica
+                
+            
+
             if (Controlador1.pontos_finalizados && !Controlador1.coleta_feita &&
-                Controlador1.soltas >= 0 && !Controlador1.processo_concluido) {
+                Controlador1.soltas >= 0 && !Controlador1.processo_concluido ) {
                 pc.printf("coletando\r\n");
                 Controlador1.coletar();
                 Controlador1.coleta_feita = true;
@@ -980,6 +1049,7 @@ void loop() {
                 }
                 pc.printf("Processo concluido em %.2f segundos\r\n", funcionamento.read());
                 // Levantando pipeta no maximo de novo
+                apaga_tela();
                 Controlador1.novo_processo();
                 apaga_tela();
             }
