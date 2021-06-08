@@ -353,16 +353,16 @@ struct PontoSolta {
     int volume_atual;
 };
 
-/*                     Estrutura Controlador                       *\
-Ela terá variaveis que irão continuamente serem atualizadas durante
-todo o processo de pipetagem, para isso todas as funções que envolvem os parametros
-irão ficar  dentro dessa estrutrua e será chamada na rotina principal
-\*                     Estrutura Controlador                       */
+/*                     Estrutura Controlador                                         *\
+    Ela terá variaveis que irão continuamente serem atualizadas durante
+    todo o processo de pipetagem, para isso todas as funções que envolvem os parametros
+    irão ficar  dentro dessa estrutrua e será chamada na rotina principal
+\*                     Estrutura Controlador                                         */
 struct Controlador {
     bool ref_feito[3];
     bool enable; // 0 -> emergencia; -> 1 funcionamento normal;
     volatile bool emergencia;
-    int soltas;
+    long soltas;
     int numero_pontos_solta; // nao sei se é a mesma coisa que a variavel de cima
     int max_coord[3];
     int min_coord[3];
@@ -384,6 +384,7 @@ struct Controlador {
     bool inicializacao;
     bool coleta_feita;
     bool processo_concluido;
+    bool primeira_solta;
     // --------------------- Rotina emergencia, display ---------------------------
     void variavel_default() {
         pc.printf("\rzerando valores\n");
@@ -401,6 +402,7 @@ struct Controlador {
         passo[0] = 3;
         passo[1] = 3;
         passo[2] = 10;
+        primeira_solta = true;
         inicializacao = true;
         enable = true; // 0 -> emergencia; -> 1 funcionamento normal;
         emergencia = false;
@@ -637,12 +639,15 @@ struct Controlador {
     }
 
     void ponto_solta(int volume_desejado) {
-        pc.printf("determinando solta\r\n");
-        soltas = numero_pontos_solta - 1;
-        solta[soltas].coord[0] = step[0];
-        solta[soltas].coord[1] = step[1];
-        solta[soltas].coord[2] = step[2];
-        solta[soltas].volume_desejado = volume_desejado;
+        if (soltas != numero_pontos_solta) {
+            pc.printf("determinando solta\r\n");
+            // soltas = numero_pontos_solta;
+            solta[soltas].coord[0] = step[0];
+            solta[soltas].coord[1] = step[1];
+            solta[soltas].coord[2] = step[2];
+            solta[soltas].volume_desejado = volume_desejado;
+            soltas++;
+        }
     }
 
     void ir_ponto(int destino[3]) {
@@ -682,7 +687,6 @@ struct Controlador {
 
     void coletar() {
         if (!coleta_feita) {
-            printf("%d\n\r", coleta[2]);
             ir_ponto(coleta);
             pipeta = true;
             wait(2);
@@ -691,16 +695,25 @@ struct Controlador {
     }
 
     void soltar() {
+        if (primeira_solta) {
+            soltas = 0;
+            solta[soltas].volume_atual = 0;
+            primeira_solta = false;
+            pc.printf("primeira solta\n\r");
+        }
+        pc.printf("volume atual: %d volume desejado: %dponto %d\n\r", solta[soltas].volume_atual,
+                  solta[soltas].volume_desejado, soltas);
         ir_ponto(solta[soltas].coord);
         pipeta = true;
-        soltas = numero_pontos_solta - 1;
+        // soltas = numero_pontos_solta - 1;
         solta[soltas].volume_atual++;
-        if (solta[soltas].volume_atual == solta[soltas].volume_desejado) {
-            solta[soltas].volume_desejado = 0;
-            solta[soltas].volume_atual = 0;
-            soltas--;
+        if (solta[soltas].volume_atual >= solta[soltas].volume_desejado) {
+            printf("entrei no if\r\n");
+            // solta[soltas].volume_desejado = 0;
+            // solta[soltas].volume_atual = 0;
+            soltas++;
             pc.printf("soltas:%d\r\n", soltas);
-            if (soltas == -1) {
+            if (soltas == numero_pontos_solta) {
                 processo_concluido = true;
                 funcionamento.stop();
             }
@@ -879,10 +892,12 @@ void loop() {
                 // pc.printf("\r\ndepoisdowhile");
                 apaga_tela();
                 int i = 0;
+
                 while (i < Controlador1.numero_pontos_solta && !Controlador1.pontos_finalizados) {
                     x = Nunchuck.joyx();
                     y = Nunchuck.joyy();
                     vol = 0;
+
                     Controlador1.motor_joystick(x, y, z1, z2);
                     pc.printf("Step x:%d Step y:%d Step z:%d SOLTA \r\n", Controlador1.step[0],
                               Controlador1.step[1], Controlador1.step[2]);
@@ -906,7 +921,13 @@ void loop() {
                         Controlador1.ponto_solta(
                             vol); // alterar o volume para o selecionado pela tela
                         apaga_tela();
+
+                        pc.printf("item %d coord %d %d %d soltas:%d vol:%d\r\n", i + 1,
+                                  Controlador1.solta[i].coord[0], Controlador1.solta[i].coord[1],
+                                  Controlador1.solta[i].coord[2], (Controlador1.soltas) - 1,
+                                  Controlador1.solta[i].volume_desejado);
                         i++;
+
                         if (i == Controlador1.numero_pontos_solta) {
                             Controlador1.pontos_finalizados = true;
                         }
@@ -924,8 +945,10 @@ void loop() {
             }
 
             if (Controlador1.pontos_finalizados && Controlador1.coleta_feita &&
-                Controlador1.soltas >= 0 && !Controlador1.processo_concluido) {
+                !Controlador1.processo_concluido) { // tiramos Controlador1.soltas >= 0
                 pc.printf("coleta_feita\r\n");
+                for (int i = 0; i < 2; i++) {
+                }
                 Controlador1.soltar();
                 Controlador1.coleta_feita = false;
                 pc.printf("Solta feita\r\n");
