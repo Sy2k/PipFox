@@ -367,7 +367,7 @@ struct Controlador {
     int max_coord[3];
     int min_coord[3];
     // ------ arrays ------
-    PontoSolta solta[9];
+    PontoSolta solta[9]; // vetor
     int coleta[3];
     int atual[3];
     int distancia_coleta_atual[3];
@@ -396,8 +396,7 @@ struct Controlador {
             step[i] = 0;
             step_rev[i] = 512;
         }
-        numero_pontos_solta = 0; // numero de pontos de solta começa não definido
-        determinar_ponto = true; // 1 -> ponto de coleta; 0 -> ponto de solta
+
         // qual_tela = 0; //0 -> welcome; 1->referenciando; 2 -> ponto de solta; 3-> ponto de coleta
         passo[0] = 3;
         passo[1] = 3;
@@ -411,6 +410,8 @@ struct Controlador {
         pontos_finalizados = false;
         coleta_feita = false;
         processo_concluido = false;
+        numero_pontos_solta = 0; // numero de pontos de solta começa não definido
+        determinar_ponto = true; // 1 -> ponto de coleta; 0 -> ponto de solta
     }
 
     void emerg() {
@@ -531,6 +532,14 @@ struct Controlador {
                 }
             }
         }
+        // Depois do referenciamento feito - será zerado e o plano cartesiano apenas terá valores
+        // positivos >=0
+        for (int i = 0; i < 3; i++) {
+            max_coord[i] += abs(min_coord[i]);
+            min_coord[i] = 0;
+            step[i] = 0;
+        }
+
         pc.printf("referenciamento_concluido \r\n");
         pc.printf("max_coord x:%d y:%d z:%d \r\n", max_coord[0], max_coord[1], max_coord[2]);
         pc.printf("min_coord x:%d y:%d z:%d \r\n", min_coord[0], min_coord[1], min_coord[2]);
@@ -543,7 +552,6 @@ struct Controlador {
         if (enable && bateu) {
             if (x > CXmax && step[0] < max_coord[0]) {
                 if (emergencia) return;
-                pc.printf("Motor X sentido 1\r\n");
                 aciona_motor(tempo, true, motores[0]);
                 step[0] += 4;
                 aciona_motor(tempo, true, motores[0]);
@@ -553,7 +561,6 @@ struct Controlador {
 
             } else if (x < CXmin && step[0] > min_coord[0]) {
                 if (emergencia) return;
-                pc.printf("Motor X sentido 2\r\n");
                 aciona_motor(tempo, false, motores[0]);
                 step[0] -= 4;
                 aciona_motor(tempo, false, motores[0]);
@@ -567,7 +574,6 @@ struct Controlador {
 
             if (y > CYmax && step[1] < max_coord[1]) {
                 if (emergencia) return;
-                pc.printf("Motor Y sentido 1\r\n");
                 aciona_motor(tempo, true, motores[1]);
                 step[1] += 4;
                 aciona_motor(tempo, true, motores[1]);
@@ -577,7 +583,6 @@ struct Controlador {
 
             } else if (y < CYmin && step[1] > min_coord[1]) {
                 if (emergencia) return;
-                pc.printf("Motor Y sentido 2\r\n");
                 aciona_motor(tempo, false, motores[1]);
                 step[1] -= 4;
                 aciona_motor(tempo, false, motores[1]);
@@ -651,13 +656,16 @@ struct Controlador {
         // Arrumando eixo x e y
         for (int i = 0; i < 2; i++) {
             // indo com eixo x e y para SAH - Sentido anti horario
-            while (step[i] < destino[i]) {
+            while (step[i] > destino[i]) {
+                pc.printf("Step x:%d Step y:%d Step z:%d subtraindo \r\n", step[0], step[1],
+                          step[2]);
                 if (emergencia) return;
                 aciona_motor(tempo, false, motores[i]);
                 step[i] -= 4;
             }
             // indo com eixo x e y para SH - Sentido horario
-            while (step[i] > destino[i]) {
+            while (step[i] < destino[i]) {
+                pc.printf("Step x:%d Step y:%d Step z:%d somando\r\n", step[0], step[1], step[2]);
                 if (emergencia) return;
                 aciona_motor(tempo, true, motores[i]);
                 step[i] += 4;
@@ -681,6 +689,25 @@ struct Controlador {
             pipeta = false;
         }
     }
+
+    void soltar() {
+        ir_ponto(solta[soltas].coord);
+        pipeta = true;
+        soltas = numero_pontos_solta - 1;
+        solta[soltas].volume_atual++;
+        if (solta[soltas].volume_atual == solta[soltas].volume_desejado) {
+            solta[soltas].volume_desejado = 0;
+            solta[soltas].volume_atual = 0;
+            soltas--;
+            pc.printf("soltas:%d\r\n", soltas);
+            if (soltas == -1) {
+                processo_concluido = true;
+                funcionamento.stop();
+            }
+        }
+        pipeta = false;
+    }
+
     void novo_processo() {
         bool esperando_novo_processo = true;
         while (esperando_novo_processo) {
@@ -705,6 +732,7 @@ struct Controlador {
             bool enter_deb = enter && estado_enter;
             if (!enter_deb) {
                 esperando_novo_processo = false;
+
                 inicializacao = true;
                 enable = true; // 0 -> emergencia; -> 1 funcionamento normal;
                 emergencia = false;
@@ -714,22 +742,21 @@ struct Controlador {
                 pontos_finalizados = false;
                 coleta_feita = false;
                 processo_concluido = false;
+                numero_pontos_solta = 0; // numero de pontos de solta começa não definido
+                determinar_ponto = true; // 1 -> ponto de coleta; 0 -> ponto de solta
+                for (int i = 0; i < 3; i++) {
+                    ref_feito[i] = false;
+                    coleta[i] = 0;
+                    atual[i] = 0;
+                    distancia_coleta_atual[i] = 0;
+                    distancia_solta_coleta[i] = 0;
+                    step[i] = 0;
+                    step_rev[i] = 512;
+                }
+                // solta.clear();
+                // PontoSolta solta[9];
             }
         }
-    }
-    void soltar() {
-        ir_ponto(solta[soltas].coord);
-        pipeta = true;
-        solta[soltas].volume_atual++;
-        if (solta[soltas].volume_atual == solta[soltas].volume_desejado) {
-            soltas--;
-            pc.printf("soltas:%d\r\n", soltas);
-            if (soltas == -1) {
-                processo_concluido = true;
-                funcionamento.stop();
-            }
-        }
-        pipeta = false;
     }
 };
 
@@ -737,6 +764,7 @@ struct Controlador {
 |*    Chamando a estrutura - Funções adicionais    *|
 \*                                                */
 Controlador Controlador1;
+
 void fail_safe() { Controlador1.emerg(); }
 
 void sair_failsafe() {
@@ -762,12 +790,10 @@ void setup() {
     bot_emerg.mode(PullUp); // definição do botão de emergencia como PullUp
     bot_emerg.fall(&fail_safe);
     bot_emerg.rise(&sair_failsafe);
-
     tft.reset();
     tft.begin();
     tft.setRotation(Orientation);
     tft.fillScreen(BLACK);
-
     delay(1000);
 }
 
@@ -854,9 +880,11 @@ void loop() {
                 apaga_tela();
                 int i = 0;
                 while (i < Controlador1.numero_pontos_solta && !Controlador1.pontos_finalizados) {
+                    x = Nunchuck.joyx();
+                    y = Nunchuck.joyy();
                     vol = 0;
                     Controlador1.motor_joystick(x, y, z1, z2);
-                    pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0],
+                    pc.printf("Step x:%d Step y:%d Step z:%d SOLTA \r\n", Controlador1.step[0],
                               Controlador1.step[1], Controlador1.step[2]);
                     bool estado_enter = enter;
                     wait_ms(50);
@@ -885,6 +913,7 @@ void loop() {
                     }
                 }
             }
+
             // Tem que add depois a tela para perguntar se deseja iniciar o processo de pipetagem
             // automatica
             if (Controlador1.pontos_finalizados && !Controlador1.coleta_feita &&
@@ -893,6 +922,7 @@ void loop() {
                 Controlador1.coletar();
                 Controlador1.coleta_feita = true;
             }
+
             if (Controlador1.pontos_finalizados && Controlador1.coleta_feita &&
                 Controlador1.soltas >= 0 && !Controlador1.processo_concluido) {
                 pc.printf("coleta_feita\r\n");
