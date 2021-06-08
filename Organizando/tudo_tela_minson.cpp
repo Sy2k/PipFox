@@ -812,6 +812,7 @@ void setup() {
     tft.setRotation(Orientation);
     tft.fillScreen(BLACK);
     delay(1000);
+    pipeta = false;
 }
 
 /*                       *\
