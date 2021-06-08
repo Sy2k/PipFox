@@ -76,7 +76,7 @@ DigitalOut led_vermelho(PD_2);
 DigitalOut led_verde(PC_11);
 DigitalOut led_amarelo(PC_10);
 DigitalOut led_azul(PC_12);
-DigitalOut pipeta(PA_14);
+DigitalOut pipeta(PB_14);
 
 //----------------------- Botoes - Emergênica, endstops, enter, movimentação Z+ e Z-
 //-----------------------
@@ -689,7 +689,7 @@ struct Controlador {
         if (!coleta_feita) {
             ir_ponto(coleta);
             pipeta = true;
-            wait(1);
+            wait(2);
             pipeta = false;
         }
     }
@@ -705,12 +705,7 @@ struct Controlador {
                   solta[soltas].volume_desejado, soltas);
         ir_ponto(solta[soltas].coord);
         pipeta = true;
-<<<<<<< HEAD
         // soltas = numero_pontos_solta - 1;
-=======
-        wait(1);
-        soltas = numero_pontos_solta - 1;
->>>>>>> 5f0e0312ea51705493ab5a3463b8c9a0df9a380e
         solta[soltas].volume_atual++;
         if (solta[soltas].volume_atual >= solta[soltas].volume_desejado) {
             printf("entrei no if\r\n");
@@ -719,6 +714,10 @@ struct Controlador {
             soltas++;
             pc.printf("soltas:%d\r\n", soltas);
             if (soltas == numero_pontos_solta) {
+                for (int i = 0; i < soltas; i++) {
+                    solta[i].volume_desejado = 0;
+                    solta[i].volume_atual = 0;
+                }
                 processo_concluido = true;
                 funcionamento.stop();
             }
@@ -731,29 +730,19 @@ struct Controlador {
         while (esperando_novo_processo) {
             tft.setTextColor(BLUE);
             tft.setTextSize(3);
-            tft.setCursor(25, 35);
-            tft.println("Nova");
-            tft.drawRoundRect(20, 20, 280, 80, 1, WHITE);
-
-            tft.setTextColor(BLUE);
-            tft.setTextSize(3);
-            tft.setCursor(25, 65);
-            tft.println("operacao?");
+            tft.setCursor(45, 70);
+            tft.println("New Operation");
+            tft.drawRoundRect(20, 60, 280, 40, 1, WHITE);
 
             tft.setTextColor(YELLOW);
-            tft.setTextSize(2);
-            tft.setCursor(45, 120);
+            tft.setTextSize(3);
+            tft.setCursor(45, 140);
             tft.println("Processo");
 
             tft.setTextColor(YELLOW);
-            tft.setTextSize(2);
-            tft.setCursor(45, 155);
-            tft.println("finalizado em");
-
-            tft.setTextColor(RED);
-            tft.setTextSize(2);
-            tft.setCursor(45, 192);
-            tft.printf("%.2f segundos",funcionamento.read());
+            tft.setTextSize(3);
+            tft.setCursor(45, 180);
+            tft.println("finalizado");
 
             bool estado_enter = enter;
             wait_ms(50);
@@ -823,7 +812,6 @@ void setup() {
     tft.setRotation(Orientation);
     tft.fillScreen(BLACK);
     delay(1000);
-    pipeta=false;
 }
 
 /*                       *\
