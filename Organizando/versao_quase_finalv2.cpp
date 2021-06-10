@@ -990,7 +990,7 @@ void sair_failsafe() {
 
 void setup() {
     Controlador1.variavel_default(); // função que contem os valores das variaveis do controlador
-    bot_emerg.mode(PullUp);          // definição do botão de emergencia como PullUp
+    //bot_emerg.mode(PullUp);          // definição do botão de emergencia como PullUp
     bot_emerg.fall(&fail_safe);
     bot_emerg.rise(&sair_failsafe);
     tft.reset();                  // Display

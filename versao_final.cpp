@@ -144,15 +144,15 @@ void sair_emer() {
         tft.setTextColor(RED);
         tft.setTextSize(3);
         tft.setCursor(35, 50);
-        tft.println("EXIT EMERGENCY");
+        tft.println("SAIR DA TELA");
         tft.setCursor(110, 80);
-        tft.println("WINDOW?");
+        tft.println("EMERG.?");
         tft.drawRoundRect(20, 40, 280, 70, 1, RED);
 
         tft.setTextSize(1);
         tft.setTextColor(BLUE);
         tft.setCursor(110, 180);
-        tft.println("Press ENTER to exit");
+        tft.println("Press. ENTER para sair");
     }
 }
 
@@ -170,21 +170,25 @@ void tela_def_solta() {
     tft.setCursor(70, 140); //  Orientação do texto X,Y
     tft.println("de solta");
 }
-void out_emergencia() {
+void tela_pergun_saida_emer() {
     bool esperando = true;
     while (esperando) {
         tft.setTextColor(RED);
         tft.setTextSize(3);
         tft.setCursor(35, 50);
-        tft.println("EXIT EMERGENCY");
+        tft.println("SAIR DA TELA");
+        
         tft.setCursor(110, 80);
-        tft.println("WINDOW?");
+        tft.println("EMERG.?");
         tft.drawRoundRect(20, 40, 280, 70, 1, RED);
 
         tft.setTextSize(2);
         tft.setTextColor(BLUE);
         tft.setCursor(35, 180);
-        tft.println("Press ENTER to exit");
+        tft.println("Press. ENTER para sair");
+
+
+
 
         bool estado_enter = enter;
         wait_ms(50);
@@ -398,10 +402,13 @@ void tela_emergencia() {
     tft.fillRect(15, 55, 300, 100, RED);
     tft.setTextColor(YELLOW);
     tft.setCursor(25, 120); // Orientação X,Y
+    tft.setTextSize(4);
     tft.println("EMERGENCIA");
-    tft.setCursor(25, 180);
-    tft.print("Esperando coman");
+    tft.setCursor(25, 160);
+    tft.setTextSize(2);
+    tft.print("Esperando comando");
 }
+
 
 void tela_sair_emergencia() {
     led_vermelho = true;
@@ -586,7 +593,7 @@ struct Controlador {
         if (!endstops && ref_feito[0] && ref_feito[1] && ref_feito[2]) {
             emerg();
             apaga_tela();
-            out_emergencia();
+            tela_pergun_saida_emer();
             sair_emerg();
         }
     }
@@ -604,15 +611,15 @@ struct Controlador {
         tft.setCursor(10, 70);
         tft.println("Pos X =");
         tft.setCursor(160, 70); // tava 240 antes
-        tft.printf("%.2f", x_cm);
+        tft.printf("%.2f cm", x_cm);
         tft.setCursor(10, 120);
         tft.println("Pos Y =");
         tft.setCursor(160, 120);
-        tft.printf("%.2f", y_cm);
+        tft.printf("%.2f cm", y_cm);
         tft.setCursor(10, 170);
         tft.println("Pos Z =");
         tft.setCursor(160, 170);
-        tft.printf("%.2f", z_cm);
+        tft.printf("%.2f cm", z_cm);
         pc.printf("%f %f %f",x_cm, y_cm, z_cm );
     }
 
@@ -630,15 +637,15 @@ struct Controlador {
         tft.setCursor(10, 70);
         tft.println("Pos X =");
         tft.setCursor(160, 70);
-        tft.printf("%.2f", x_cm);
+        tft.printf("%.2f cm", x_cm);
         tft.setCursor(10, 120);
         tft.println("Pos Y =");
         tft.setCursor(160, 120);
-        tft.printf("%.2f", y_cm);
+        tft.printf("%.2f cm", y_cm);
         tft.setCursor(10, 170);
         tft.println("Pos Z =");
         tft.setCursor(160, 170);
-        tft.printf("%.2f", z_cm);
+        tft.printf("%.2f cm", z_cm);
     }
 
     void eixo_refere() {
