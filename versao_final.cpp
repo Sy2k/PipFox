@@ -79,7 +79,6 @@ WiiNunchuck Nunchuck(p_sda, p_scl);
 DigitalOut led_vermelho(PD_2);
 DigitalOut led_verde(PC_11);
 DigitalOut led_amarelo(PC_10);
-DigitalOut led_azul(PC_12);
 DigitalOut pipeta(PA_14);
 
 //------- Botoes - Emergênica, endstops, enter, movimentação Z+ e Z --------------
@@ -477,7 +476,7 @@ struct Controlador {
     int distancia_coleta_atual[3];
     int distancia_solta_coleta[3];
     int step[3];
-    int step_rev[3]; // passo/rev motor x,y,z
+    float step_rev[3]; // passo/rev motor x,y,z
     int passo[3];    // passo x, y, z (FUSO)
     int tempo;
     int destino[3];
@@ -592,7 +591,7 @@ struct Controlador {
         }
     }
 
-    void tela_mostrar_ponto_coleta_def(int x, int y, int z) {
+    void tela_mostrar_ponto_coleta_def(float x, float y, float z) {
         float x_cm = x * passo[0] / (step_rev[0]);
         float y_cm = y * passo[1] / (step_rev[1]);
         float z_cm = z * passo[2] / (step_rev[2]);
@@ -614,9 +613,10 @@ struct Controlador {
         tft.println("Pos Z =");
         tft.setCursor(160, 170);
         tft.printf("%.2f", z_cm);
+        pc.printf("%f %f %f",x_cm, y_cm, z_cm );
     }
 
-    void tela_mostrar_ponto_solta_def(int x, int y, int z, int n) {
+    void tela_mostrar_ponto_solta_def(float x, float y, float z, int n) {
         float x_cm = x * passo[0] / (step_rev[0]);
         float y_cm = y * passo[1] / (step_rev[1]);
         float z_cm = z * passo[2] / (step_rev[2]);
