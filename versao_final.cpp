@@ -118,7 +118,10 @@ void tela_ref_finalizado() {
     // estado_atual=estado_atual+1;
 }
 
-void apaga_tela() { tft.fillScreen(BLACK); }
+void apaga_tela() { 
+    tft.fillScreen(BLACK); 
+    //pc.printf("apagando tela\n\r");
+}
 
 void tela_def_coleta() {
     led_amarelo = true;
@@ -663,8 +666,6 @@ struct Controlador {
                             aciona_motor(3, false, motores[i]); 
                             aciona_motor(3, false, motores[i]);
                             aciona_motor(3, false, motores[i]); // +64 steps para desativar o endstop
-
-                            pc.printf("desativando endstop\n\r");
                             wait(1);
                         }
 
@@ -686,8 +687,6 @@ struct Controlador {
                             aciona_motor(3, true, motores[i]);
                             aciona_motor(3, true, motores[i]); 
                             aciona_motor(3, true, motores[i]);
-                        
-                            pc.printf("desativando endstop\n\r");
                             wait(1);
                         }
                     }
@@ -720,9 +719,17 @@ struct Controlador {
                 step[0] += 4;
                 aciona_motor(tempo, true, motores[0]);
                 step[0] += 4;
+                aciona_motor(tempo, true, motores[0]);
+                step[0] += 4;
+                aciona_motor(tempo, true, motores[0]);
+                step[0] += 4;
 
             } else if (x < CXmin && step[0] > min_coord[0]) {
                 if (emergencia) return;
+                aciona_motor(tempo, false, motores[0]);
+                step[0] -= 4;
+                aciona_motor(tempo, false, motores[0]);
+                step[0] -= 4;
                 aciona_motor(tempo, false, motores[0]);
                 step[0] -= 4;
                 aciona_motor(tempo, false, motores[0]);
@@ -740,6 +747,10 @@ struct Controlador {
                 step[1] += 4;
                 aciona_motor(tempo, true, motores[1]);
                 step[1] += 4;
+                aciona_motor(tempo, true, motores[1]);
+                step[1] += 4;
+                aciona_motor(tempo, true, motores[1]);
+                step[1] += 4;
             } else if (y < CYmin && step[1] > min_coord[1]) {
                 if (emergencia) return;
                 aciona_motor(tempo, false, motores[1]);
@@ -748,6 +759,11 @@ struct Controlador {
                 step[1] -= 4;
                 aciona_motor(tempo, false, motores[1]);
                 step[1] -= 4;
+                aciona_motor(tempo, false, motores[1]);
+                step[1] -= 4;
+                aciona_motor(tempo, false, motores[1]);
+                step[1] -= 4;
+                
             } else {
                 desliga_motor(motores[1]);
             }
@@ -764,8 +780,16 @@ struct Controlador {
                 step[2] += 4;
                 aciona_motor(tempo, true, motores[2]);
                 step[2] += 4;
+                aciona_motor(tempo, true, motores[2]);
+                step[2] += 4;
+                aciona_motor(tempo, true, motores[2]);
+                step[2] += 4;
             } else if (!bateu_z2 && step[2] > min_coord[2]) {
                 if (emergencia) return;
+                aciona_motor(tempo, false, motores[2]);
+                step[2] -= 4;
+                aciona_motor(tempo, false, motores[2]);
+                step[2] -= 4;
                 aciona_motor(tempo, false, motores[2]);
                 step[2] -= 4;
                 aciona_motor(tempo, false, motores[2]);
@@ -802,7 +826,7 @@ struct Controlador {
         // ---- Levantando pipeta no maximo ----
         while (step[2] < max_coord[2] && estado_ref) {
             chave_fim_curso();
-            pc.printf("Step x:%d Step y:%d Step z:%d \r\n", step[0], step[1], step[2]);
+            pc.printf("Step x:%d Step y:%d Step z:%d levantando pipeta\r\n", step[0], step[1], step[2]);
             if (emergencia) return;
             aciona_motor(tempo, true, motores[2]);
             step[2] += 4;
@@ -830,7 +854,7 @@ struct Controlador {
         // ---- Descendo pipeta para ponto desejado ----
         while (step[2] > destino[2] && estado_ref) {
             chave_fim_curso();
-            pc.printf("Step x:%d Step y:%d Step z:%d \r\n", step[0], step[1], step[2]);
+            pc.printf("Step x:%d Step y:%d Step z:%d descendo para ponto desejado\r\n", step[0], step[1], step[2]);
             if (emergencia) return;
             aciona_motor(tempo, false, motores[2]);
             step[2] -= 4;
@@ -984,7 +1008,7 @@ void setup() {
 void loop() {
     x = Nunchuck.joyx();
     y = Nunchuck.joyy();
-    pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0], Controlador1.step[1],
+    pc.printf("Step x:%d Step y:%d Step z:%d\r\n", Controlador1.step[0], Controlador1.step[1],//loop
               Controlador1.step[2]);
     if (Controlador1.enable && !Controlador1.emergencia) {
         led_verde = true;
@@ -1064,7 +1088,7 @@ void loop() {
                     pc.printf("\rquantidade pontos de solta definidos: %d\n",
                               Controlador1.numero_pontos_solta);
                 }
-                apaga_tela();
+
                 int i = 0;
                 while (i < Controlador1.numero_pontos_solta && !Controlador1.pontos_finalizados &&
                        !Controlador1.emergencia) {
@@ -1074,11 +1098,12 @@ void loop() {
                     y = Nunchuck.joyy();
                     vol = 1;
                     Controlador1.motor_joystick(x, y, z1, z2);
-                    pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0],
+                    pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0], //while
                               Controlador1.step[1], Controlador1.step[2]);
                     bool estado_enter = enter;
                     wait_ms(50);
                     bool enter_deb = enter && estado_enter;
+
                     apaga_tela();
                     tela_def_solta();
                     if (!enter_deb && !Controlador1.emergencia) {
@@ -1090,12 +1115,14 @@ void loop() {
                                                                   Controlador1.step[2], i + 1);
                         pc.printf("determinando ponto de solta %d\r\n", i + 1);
                         wait(2);
+
                         apaga_tela();
                         tela_ref_det_vol();
                         wait(2);
                         //  ----- alterar o volume para o selecionado pela tela -----
                         Controlador1.ponto_solta(vol);
                         apaga_tela();
+
                         pc.printf("item %d coord %d %d %d soltas:%d vol:%d\r\n", i + 1,
                                   Controlador1.solta[i].coord[0], Controlador1.solta[i].coord[1],
                                   Controlador1.solta[i].coord[2], (Controlador1.soltas),
@@ -1106,6 +1133,7 @@ void loop() {
                             if (Controlador1.emergencia) return;
                             Controlador1.pontos_finalizados = true;
                             tela_iniciar_rotina();
+
                             apaga_tela();
                             tela_realizando_rotina();
                         }
@@ -1140,7 +1168,7 @@ void loop() {
                        Controlador1.processo_concluido) {
                     Controlador1.chave_fim_curso();
                     if (Controlador1.emergencia) return;
-                    pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0],
+                    pc.printf("Step x:%d Step y:%d Step z:%d subindo pela ultima vez\r\n", Controlador1.step[0],// processo quase concluido
                               Controlador1.step[1], Controlador1.step[2]);
                     aciona_motor(3, true, motores[2]);
                     Controlador1.step[2] += 4;
