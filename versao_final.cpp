@@ -56,10 +56,10 @@ TSPoint_kbv tp;
 
 //----------------------- Definição das portas dos motores -----------------------
 BusOut motor_x(PC_4, PB_13, PB_14, PB_1);
-BusOut motor_y(PC_3, PB_11, PB_12, PA_11); // PC_3 substituiu PB_2
+BusOut motor_y(PB_2, PB_11, PB_12, PA_11); // PC_3 substituiu PB_2
 BusOut motor_z(PA_12, PC_5, PC_6, PC_8);
 BusOut motores[3] = {BusOut(PC_4, PB_13, PB_14, PB_1),
-                     BusOut(PC_3, PB_11, PB_12, PA_11), // PC_3 substituiu PB_2
+                     BusOut(PB_2, PB_11, PB_12, PA_11), // PC_3 substituiu PB_2
                      BusOut(PA_12, PC_5, PC_6, PC_8)};
 
 //----------------------- WII ---------------------------
@@ -114,7 +114,6 @@ void tela_ref_finalizado() {
     tft.setCursor(3, 55);
     tft.println("Homing concluido");
     wait(3);
-    // estado_atual=estado_atual+1;
 }
 
 void apaga_tela() { 
@@ -1147,7 +1146,7 @@ void loop() {
                     }
                 }
             }
-
+            
             if (Controlador1.pontos_finalizados && !Controlador1.coleta_feita &&
                 Controlador1.soltas >= 0 && !Controlador1.processo_concluido) {
                 Controlador1.chave_fim_curso();
