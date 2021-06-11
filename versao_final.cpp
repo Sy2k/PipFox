@@ -31,8 +31,8 @@ bool menos = 0;
 int vol = 1;
 int num_pontos_solta;
 
-bool referenciando = false;
-bool fail_safe_out = false;
+bool referenciando = false; // variavel booleana para saber se esta referenciando ou n
+bool fail_safe_out = false; // booleana para saber se esta referenciando ou n
 
 Timer funcionamento;
 
@@ -76,10 +76,10 @@ BusOut motores[3] = {BusOut(PC_4, PB_13, PB_14, PB_1),
 WiiNunchuck Nunchuck(p_sda, p_scl);
 
 //----- Declaração das portas dos leds ------
-DigitalOut led_vermelho(PD_2);
-DigitalOut led_verde(PC_11);
-DigitalOut led_amarelo(PC_10);
-DigitalOut pipeta(PA_14);
+DigitalOut led_vermelho(PD_2); // led: estado de emergência
+DigitalOut led_verde(PC_11);   // led: ligado/desligado
+DigitalOut led_amarelo(PC_10); // led: esperando uma ação do usuário
+DigitalOut pipeta(PA_14);      // led para representar a pipeta
 
 //------- Botoes - Emergênica, endstops, enter, movimentação Z+ e Z --------------
 InterruptIn bot_emerg(PC_13);
@@ -101,103 +101,97 @@ int status = 0;
 |*    Funções do display     *|
 \*                           */
 void tela_ref_em_anda() {
-    tft.setTextColor(GREEN);
-    tft.setTextSize(3);
-    tft.setCursor(3, 125);
-    tft.println("Fazendo homing...");
+    tft.setTextColor(GREEN);          // Setagem de cor
+    tft.setTextSize(3);               // Setagem de tamanho
+    tft.setCursor(3, 125);            // Orientação do texto X,Y
+    tft.println("Fazendo homing..."); // texto que será mostrado
 }
 
 void tela_ref_finalizado() {
-    // tft.fillScreen(BLACK);
-    tft.setTextColor(GREEN);
-    tft.setTextSize(3);
-    tft.setCursor(3, 55);
-    tft.println("Homing concluido");
+    tft.setTextColor(GREEN);         // Setagem de cor
+    tft.setTextSize(3);              // Setagem de tamanho
+    tft.setCursor(3, 55);            // Orientação do texto X,Y
+    tft.println("Homing concluido"); // texto que será mostrado
     wait(3);
 }
 
-void apaga_tela() { 
-    tft.fillScreen(BLACK); 
-    //pc.printf("apagando tela\n\r");
-}
+// --- tela para apagar ---
+void apaga_tela() { tft.fillScreen(BLACK); }
 
+// --- tela para definir coleta ---
 void tela_def_coleta() {
     led_amarelo = true;
-    tft.setTextColor(GREEN);
-    tft.setTextSize(4);    // Tamanho do Texto no Display
-    tft.setCursor(80, 40); //  Orientação do texto X,Y
-    tft.println("Definir");
+    tft.setTextColor(GREEN); // Setagem de cor
+    tft.setTextSize(4);      // Tamanho do Texto no Display
+    tft.setCursor(80, 40);   // Orientação do texto X,Y
+    tft.println("Definir");  // texto que será mostrado
 
-    tft.setTextSize(4);
-    tft.setCursor(80, 90); //  Orientação do texto X,Y
+    tft.setTextSize(4);    // Tamanho do Texto no Display
+    tft.setCursor(80, 90); // Orientação do texto X,Y
     tft.println("Ponto");
 
-    tft.setTextSize(4);     // Tamanho do Texto no Display
-    tft.setCursor(80, 140); //  Orientação do texto X,Y
-    tft.println("de Coleta");
+    tft.setTextSize(4);       // Tamanho do Texto no Display
+    tft.setCursor(80, 140);   // Orientação do texto X,Y
+    tft.println("de Coleta"); // texto que será mostrado
 }
 // --- tela para sair da emergência ---
 void sair_emer() {
     bool esperando = true;
     while (esperando) {
-        tft.setTextColor(RED);
-        tft.setTextSize(3);
-        tft.setCursor(35, 50);
-        tft.println("SAIR DA TELA");
-        tft.setCursor(110, 80);
-        tft.println("EMERG.?");
-        tft.drawRoundRect(20, 40, 280, 70, 1, RED);
-
-        tft.setTextSize(1);
-        tft.setTextColor(BLUE);
-        tft.setCursor(110, 180);
-        tft.println("Press. ENTER para sair");
+        tft.setTextColor(RED);                      // Setagem de cor
+        tft.setTextSize(3);                         // Tamanho do Texto no Display
+        tft.setCursor(35, 50);                      // Orientação do texto X,Y
+        tft.println("SAIR DA TELA");                // texto que será mostrado
+        tft.setCursor(110, 80);                     // Orientação do texto X,Y
+        tft.println("EMERG.?");                     // texto que será mostrado
+        tft.drawRoundRect(20, 40, 280, 70, 1, RED); // Setagem de cor
+        tft.setTextSize(1);                         // Tamanho do Texto no Display
+        tft.setTextColor(BLUE);                     // Setagem de cor
+        tft.setCursor(110, 180);                    // Orientação do texto X,Y
+        tft.println("Press. ENTER para sair");      // Tamanho do Texto no Display
     }
 }
 
+// --- Tela para definir solta ---
 void tela_def_solta() {
-    tft.setTextColor(GREEN);
-    tft.setTextSize(4);    // Tamanho do Texto no Display
-    tft.setCursor(70, 40); //  Orientação do texto X,Y
-    tft.println("Defina um");
-
-    tft.setTextSize(4);
-    tft.setCursor(70, 90); //  Orientação do texto X,Y
-    tft.println("ponto");
-
-    tft.setTextSize(4);     // Tamanho do Texto no Display
-    tft.setCursor(70, 140); //  Orientação do texto X,Y
-    tft.println("de solta");
+    tft.setTextColor(GREEN);  // Setagem de cor
+    tft.setTextSize(4);       // Tamanho do Texto no Display
+    tft.setCursor(70, 40);    // Orientação do texto X,Y
+    tft.println("Defina um"); // texto que será mostrado
+    tft.setTextSize(4);       // Tamanho do Texto no Display
+    tft.setCursor(70, 90);    // Orientação do texto X,Y
+    tft.println("ponto");     // texto que será mostrado
+    tft.setTextSize(4);       // Tamanho do Texto no Display
+    tft.setCursor(70, 140);   // Orientação do texto X,Y
+    tft.println("de solta");  // texto que será mostrado
 }
+
+// --- Tela para perguntar se deseja sair da emergência ---
 void tela_pergun_saida_emer() {
     bool esperando = true;
     while (esperando) {
-        tft.setTextColor(RED);
-        tft.setTextSize(3);
-        tft.setCursor(35, 50);
-        tft.println("SAIR DA TELA");
-        
-        tft.setCursor(110, 80);
-        tft.println("EMERG.?");
-        tft.drawRoundRect(20, 40, 280, 70, 1, RED);
-
-        tft.setTextSize(2);
-        tft.setTextColor(BLUE);
-        tft.setCursor(35, 180);
-        tft.println("Press. ENTER para sair");
-
-
-
-
-        bool estado_enter = enter;
-        wait_ms(50);
-        bool enter_deb = enter && estado_enter;
+        tft.setTextColor(RED);                      // Setagem de cor
+        tft.setTextSize(3);                         // Tamanho do Texto no Display
+        tft.setCursor(35, 50);                      // Orientação do texto X,Y
+        tft.println("SAIR DA TELA");                // texto que será mostrado
+        tft.setCursor(110, 80);                     // Orientação do texto X,Y
+        tft.println("EMERG.?");                     // texto que será mostrado
+        tft.drawRoundRect(20, 40, 280, 70, 1, RED); // Setagem de cor
+        tft.setTextSize(2);                         // Tamanho do Texto no Display
+        tft.setTextColor(BLUE);                     // Setagem de cor
+        tft.setCursor(35, 180);                     // Orientação do texto X,Y
+        tft.println("Press. ENTER para sair");      // texto que será mostrado
+        bool estado_enter = enter;                  // DEBOUNCE
+        wait_ms(50);                                // DEBOUNCE
+        bool enter_deb = enter && estado_enter;     // DEBOUNCE
 
         if (!estado_enter) {
             esperando = false;
         }
     }
 }
+
+// --- Tela dos recipientes ---
 void tela_recipientes() {
     tft.setTextColor(GREEN);
     tft.setTextSize(15);
@@ -222,8 +216,9 @@ void tela_recipientes() {
     tft.printf("NUM = %d ", num_pontos_solta);
 }
 
+// --- [TOUCH] para tela de terminar o numero de recipientes ---
 void funcao_touch_det_num_recip(void) {
-    bool definindo = true;
+    bool definindo = true; // Variavel para ver se esta definindo o numero de recipiente
     tft.setTextSize(2);
     tft.setTextColor(MAGENTA, BLUE);
     num_pontos_solta = 1;
@@ -346,17 +341,17 @@ void welcome() {
     led_vermelho = false;
     tft.setTextColor(BLUE);
     tft.setTextSize(5);    // Tamanho do Texto no Display
-    tft.setCursor(20, 40); //  Orientação do texto X,Y
+    tft.setCursor(20, 40); // Orientação do texto X,Y
     tft.println("Welcome");
     wait(1);
     tft.setTextColor(GREEN);
     tft.setTextSize(3);      // Tamanho do Texto no Display
-    tft.setCursor(130, 100); //  Orientação do texto X,Y
+    tft.setCursor(130, 100); // Orientação do texto X,Y
     tft.println("To");
     wait(1);
     tft.setTextColor(RED);
     tft.setTextSize(5);      // Tamanho do Texto no Display
-    tft.setCursor(120, 140); //  Orientação do texto X,Y
+    tft.setCursor(120, 140); // Orientação do texto X,Y
     tft.println("PipFox");
     wait(0.5);
 }
@@ -367,10 +362,10 @@ void tela_iniciar_rotina() {
         led_amarelo = true;
         tft.setTextColor(GREEN);
         tft.setTextSize(4);    // Tamanho do Texto no Display
-        tft.setCursor(50, 70); //  Orientação do texto X,Y
+        tft.setCursor(50, 70); // Orientação do texto X,Y
         tft.println("Realizar");
         tft.setTextSize(4);
-        tft.setCursor(50, 120); //  Orientação do texto X,Y
+        tft.setCursor(50, 120); // Orientação do texto X,Y
         tft.println("Rotina?");
         bool estado_enter = enter;
         wait_ms(50);
@@ -386,11 +381,11 @@ void tela_realizando_rotina() {
     led_verde = true;
     tft.setTextColor(GREEN);
     tft.setTextSize(4);    // Tamanho do Texto no Display
-    tft.setCursor(50, 70); //  Orientação do texto X,Y
+    tft.setCursor(50, 70); // Orientação do texto X,Y
     tft.println("Realizando");
 
     tft.setTextSize(4);
-    tft.setCursor(50, 120); //  Orientação do texto X,Y
+    tft.setCursor(50, 120); // Orientação do texto X,Y
     tft.println("Rotina!");
 }
 
@@ -407,7 +402,6 @@ void tela_emergencia() {
     tft.setTextSize(2);
     tft.print("Esperando comando");
 }
-
 
 void tela_sair_emergencia() {
     led_vermelho = true;
@@ -483,7 +477,7 @@ struct Controlador {
     int distancia_solta_coleta[3];
     int step[3];
     float step_rev[3]; // passo/rev motor x,y,z
-    int passo[3];    // passo x, y, z (FUSO)
+    int passo[3];      // passo x, y, z (FUSO)
     int tempo;
     int destino[3];
 
@@ -603,7 +597,7 @@ struct Controlador {
         float z_cm = z * passo[2] / (step_rev[2]);
         tft.setTextColor(BLUE);
         tft.setTextSize(3);   // Tamanho do Texto no Display
-        tft.setCursor(3, 10); //  Orientação do texto X,Y
+        tft.setCursor(3, 10); // Orientação do texto X,Y
         tft.println("Ponto de coleta");
         tft.setTextColor(WHITE);
         tft.setTextSize(3); // Tamanho do Texto no Display
@@ -619,7 +613,7 @@ struct Controlador {
         tft.println("Pos Z =");
         tft.setCursor(160, 170);
         tft.printf("%.2f cm", z_cm);
-        pc.printf("%f %f %f",x_cm, y_cm, z_cm );
+        pc.printf("%f %f %f", x_cm, y_cm, z_cm);
     }
 
     void tela_mostrar_ponto_solta_def(float x, float y, float z, int n) {
@@ -629,7 +623,7 @@ struct Controlador {
         // Título da sessão
         tft.setTextColor(BLUE);
         tft.setTextSize(3);   // Tamanho do Texto no Display
-        tft.setCursor(3, 10); //  Orientação do texto X,Y
+        tft.setCursor(3, 10); // Orientação do texto X,Y
         tft.printf("Ponto de solta %d", n);
         tft.setTextColor(WHITE);
         tft.setTextSize(3); // Tamanho do Texto no Display
@@ -664,14 +658,15 @@ struct Controlador {
                             finding_max = false;
                             max_coord[i] = step[i] - 64; // subtração dos 8 steps
                             if (emergencia) return;
-                            aciona_motor(3, false, motores[i]); 
-                            aciona_motor(3, false, motores[i]); 
-                            aciona_motor(3, false, motores[i]); 
-                            aciona_motor(3, false, motores[i]); 
-                            aciona_motor(3, false, motores[i]); 
-                            aciona_motor(3, false, motores[i]); 
                             aciona_motor(3, false, motores[i]);
-                            aciona_motor(3, false, motores[i]); // +64 steps para desativar o endstop
+                            aciona_motor(3, false, motores[i]);
+                            aciona_motor(3, false, motores[i]);
+                            aciona_motor(3, false, motores[i]);
+                            aciona_motor(3, false, motores[i]);
+                            aciona_motor(3, false, motores[i]);
+                            aciona_motor(3, false, motores[i]);
+                            aciona_motor(3, false,
+                                         motores[i]); // +64 steps para desativar o endstop
                             wait(1);
                         }
 
@@ -685,13 +680,13 @@ struct Controlador {
                             ref_feito[i] = true;
                             min_coord[i] = step[i] + 64; // adição dos 8 steps
                             if (emergencia) return;
-                            aciona_motor(3, true, motores[i]); 
                             aciona_motor(3, true, motores[i]);
-                            aciona_motor(3, true, motores[i]); 
                             aciona_motor(3, true, motores[i]);
-                            aciona_motor(3, true, motores[i]); 
                             aciona_motor(3, true, motores[i]);
-                            aciona_motor(3, true, motores[i]); 
+                            aciona_motor(3, true, motores[i]);
+                            aciona_motor(3, true, motores[i]);
+                            aciona_motor(3, true, motores[i]);
+                            aciona_motor(3, true, motores[i]);
                             aciona_motor(3, true, motores[i]);
                             wait(1);
                         }
@@ -769,7 +764,7 @@ struct Controlador {
                 step[1] -= 4;
                 aciona_motor(tempo, false, motores[1]);
                 step[1] -= 4;
-                
+
             } else {
                 desliga_motor(motores[1]);
             }
@@ -832,7 +827,8 @@ struct Controlador {
         // ---- Levantando pipeta no maximo ----
         while (step[2] < max_coord[2] && estado_ref) {
             chave_fim_curso();
-            pc.printf("Step x:%d Step y:%d Step z:%d levantando pipeta\r\n", step[0], step[1], step[2]);
+            pc.printf("Step x:%d Step y:%d Step z:%d levantando pipeta\r\n", step[0], step[1],
+                      step[2]);
             if (emergencia) return;
             aciona_motor(tempo, true, motores[2]);
             step[2] += 4;
@@ -860,7 +856,8 @@ struct Controlador {
         // ---- Descendo pipeta para ponto desejado ----
         while (step[2] > destino[2] && estado_ref) {
             chave_fim_curso();
-            pc.printf("Step x:%d Step y:%d Step z:%d descendo para ponto desejado\r\n", step[0], step[1], step[2]);
+            pc.printf("Step x:%d Step y:%d Step z:%d descendo para ponto desejado\r\n", step[0],
+                      step[1], step[2]);
             if (emergencia) return;
             aciona_motor(tempo, false, motores[2]);
             step[2] -= 4;
@@ -1014,7 +1011,8 @@ void setup() {
 void loop() {
     x = Nunchuck.joyx();
     y = Nunchuck.joyy();
-    pc.printf("Step x:%d Step y:%d Step z:%d\r\n", Controlador1.step[0], Controlador1.step[1],//loop
+    pc.printf("Step x:%d Step y:%d Step z:%d\r\n", Controlador1.step[0],
+              Controlador1.step[1], // loop
               Controlador1.step[2]);
     if (Controlador1.enable && !Controlador1.emergencia) {
         led_verde = true;
@@ -1096,22 +1094,26 @@ void loop() {
                 }
 
                 int i = 0;
+                // Sabendo os numero de pontos de solta que o usuario deseja será guardado as
+                // coordenadas e o volume para cada ponto de solta
                 while (i < Controlador1.numero_pontos_solta && !Controlador1.pontos_finalizados &&
                        !Controlador1.emergencia) {
-                    Controlador1.chave_fim_curso();
-                    if (Controlador1.emergencia) return;
-                    x = Nunchuck.joyx();
-                    y = Nunchuck.joyy();
-                    vol = 1;
-                    Controlador1.motor_joystick(x, y, z1, z2);
-                    pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0], //while
-                              Controlador1.step[1], Controlador1.step[2]);
-                    bool estado_enter = enter;
-                    wait_ms(50);
-                    bool enter_deb = enter && estado_enter;
-
+                    Controlador1.chave_fim_curso();            // Emergencia chave fim de curso
+                    if (Controlador1.emergencia) return;       // Emergencia
+                    x = Nunchuck.joyx();                       // leitura do nunchuck
+                    y = Nunchuck.joyy();                       // leitura do nunchuck
+                    vol = 1;                                   // volume
+                    Controlador1.motor_joystick(x, y, z1, z2); // Função do joystick
+                    pc.printf("Step x:%d Step y:%d Step z:%d \r\n", Controlador1.step[0],
+                              Controlador1.step[1],
+                              Controlador1.step[2]);        // Print para saber os steps
+                    bool estado_enter = enter;              // DEBOUNCE
+                    wait_ms(50);                            // DEBOUNCE
+                    bool enter_deb = enter && estado_enter; // DEBOUNCE
                     apaga_tela();
                     tela_def_solta();
+                    // - SE O ENTER FOR ACIONADO E O ESTADO DE EMERGENCIA FOR FALSO - SERA
+                    // DETERMINADO OS PONTOS DE SOLTA
                     if (!enter_deb && !Controlador1.emergencia) {
                         Controlador1.chave_fim_curso();
                         if (Controlador1.emergencia) return;
@@ -1121,7 +1123,6 @@ void loop() {
                                                                   Controlador1.step[2], i + 1);
                         pc.printf("determinando ponto de solta %d\r\n", i + 1);
                         wait(2);
-
                         apaga_tela();
                         tela_ref_det_vol();
                         wait(2);
@@ -1146,7 +1147,8 @@ void loop() {
                     }
                 }
             }
-            
+            // Com os pontos de solta guardados será feito a coleta - irá ir ao ponto guardado de
+            // coleta e coletar
             if (Controlador1.pontos_finalizados && !Controlador1.coleta_feita &&
                 Controlador1.soltas >= 0 && !Controlador1.processo_concluido) {
                 Controlador1.chave_fim_curso();
@@ -1155,7 +1157,8 @@ void loop() {
                 Controlador1.coletar();
                 Controlador1.coleta_feita = true;
             }
-
+            // Apos a coleta irá para o ponto de solta e irá ficar indo e voltando ate o volume
+            // desejado = volume atual
             if (Controlador1.pontos_finalizados && Controlador1.coleta_feita &&
                 !Controlador1.processo_concluido) {
                 Controlador1.chave_fim_curso();
@@ -1165,7 +1168,7 @@ void loop() {
                 Controlador1.coleta_feita = false;
                 pc.printf("Solta feita\r\n");
             }
-
+            // quando o processo concluido for satisfeito
             if (Controlador1.processo_concluido) {
                 Controlador1.chave_fim_curso();
                 if (Controlador1.emergencia) return;
@@ -1174,7 +1177,8 @@ void loop() {
                        Controlador1.processo_concluido) {
                     Controlador1.chave_fim_curso();
                     if (Controlador1.emergencia) return;
-                    pc.printf("Step x:%d Step y:%d Step z:%d subindo pela ultima vez\r\n", Controlador1.step[0],// processo quase concluido
+                    pc.printf("Step x:%d Step y:%d Step z:%d subindo pela ultima vez\r\n",
+                              Controlador1.step[0], // processo quase concluido
                               Controlador1.step[1], Controlador1.step[2]);
                     aciona_motor(3, true, motores[2]);
                     Controlador1.step[2] += 4;
@@ -1189,7 +1193,7 @@ void loop() {
             }
         }
     } else {
-        led_verde = false;
-        led_vermelho = true;
+        led_verde = false;   // ESTADO DA MAQUINA
+        led_vermelho = true; // ESTADO DA MAQUINA - EMERGENCIA ACIONADA
     }
 }
